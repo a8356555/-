@@ -2,6 +2,7 @@
 from torch.utils.data import Dataset, DataLoader, random_split
 from functools import ImageReader
 from config import dcfg
+
 class YuShanDataset(Dataset):
     def __init__(self, image_paths, int_labels, transform=None):    
         self.image_paths = image_paths
@@ -40,3 +41,38 @@ class YushanDataModule(pl.LightningDataModule):
         
     def val_dataloader(self):
         return DataLoader(self.valid, batch_size=dcfg.batch_size, num_workers=dcfg.num_workers, pin_memory=dcfg.is_memory_pinned)        
+
+def get_data():
+    # load training data dict
+    training_data_dict_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/training data dic.txt'
+    
+    with open(training_data_dict_path, 'r') as file:
+        word_classes = [word.rstrip() for word in file.readlines()]
+    
+    print(f'no of origin labels: {len(word_classes)},\nno of unique labels: {np.unique(word_classes).shape[0]}')
+
+    word_classes.append('isnull')
+
+    train_txt = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/train_balanced_images.txt'
+    valid_txt = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+    train_image_paths, train_int_labels = FileHandler.read_path_and_label_from_txt(train_txt)
+    valid_image_paths, valid_int_labels = FileHandler.read_path_and_label_from_txt(valid_txt)
+    return word_classes, train_image_paths, train_int_labels, valid_image_paths, valid_int_labels
+
+
+def create_datamodule(args):
+    if args.source == 'origin':
+        word_classes, train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = get_data()    
+        transform = A.Compose([                                                                      
+                        A.SmallestMaxSize(225),
+                        A.RandomCrop(224, 224),
+                        ToTensorV2()
+        ])
+        train_input = {'path': train_image_paths, 'int_label': train_int_labels}
+        valid_input = {'path': valid_image_paths, 'int_label': valid_int_labels}
+        
+        datamodule = YushanDataModule(train_input, valid_input, transform=transform)
+    elif args.source == 'origin':
+        "..."
+
+    return datamodule

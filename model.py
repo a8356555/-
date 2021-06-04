@@ -4,12 +4,13 @@ from config import mcfg, dcfg, ocfg
 import torch
 from torch import nn
 
+class CustomModel(nn.Module):
+    pass
+
 class YuShanClassifier(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, model):
         super().__init__()        
-        self.model = mcfg.raw_model
-        num_input_fts = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_input_fts, mcfg.pred_size)
+        self.model = model
         self.time = 0
         
     def forward(self, x):
@@ -126,3 +127,10 @@ class DaliYuShanClassifier(YuShanClassifier):
         x = batch[0]["data"]
         y = batch[0]["label"].squeeze(-1).long().cuda()
         return (x, y)
+
+def get_model()
+    model = mcfg.raw_model
+    num_input_fts = self.model.fc.in_features
+    model.fc = nn.Linear(num_input_fts, mcfg.pred_size)
+        
+    model = YuShanClassifier(model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else YuShanClassifier(model)

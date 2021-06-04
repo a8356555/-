@@ -30,8 +30,9 @@ import albumentations.augmentations.transforms as transforms
 
 # in-project
 from functools import DataHandler, ImageReader
-from model import YuShanClassifier, DaliYuShanClassifier
+from model import get_model
 from config import dcfg, mcfg, ocfg, save_config
+from dataset import create_datamodule
 
 def seed_torch(seed=1029):
     random.seed(seed)
@@ -45,44 +46,29 @@ def seed_torch(seed=1029):
     torch.backends.cudnn.enabled = False
     print('seeded')
 
-def get_data():
-    # load training data dict
-    training_data_dict_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/training data dic.txt'
+
+def make_parser():
+    parser = ArgumentParser(
+        description="Train Model on Origin/Second Source Data")
+    parser.add_argument(
+        '--source', '-s', type=str, default='origin', required=True,
+        help='origin or second')
+    parser.add_argument(
+        '--model', '-m', type=str, default='res18',
+        help='custom or res18')
     
-    with open(training_data_dict_path, 'r') as file:
-        word_classes = [word.rstrip() for word in file.readlines()]
-    
-    print(f'no of origin labels: {len(word_classes)},\nno of unique labels: {np.unique(word_classes).shape[0]}')
+    return parser
 
-    word_classes.append('isnull')
-
-    train_txt = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/train_balanced_images.txt'
-    valid_txt = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
-    train_image_paths, train_int_labels = FileHandler.read_path_and_label_from_txt(train_txt)
-    valid_image_paths, valid_int_labels = FileHandler.read_path_and_label_from_txt(valid_txt)
-    return word_classes, train_image_paths, train_int_labels, valid_image_paths, valid_int_labels
-
-if __name__ == "__main__":
-    word_classes, train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = get_data()
-
+if __name__ == '__main__':
     seed_torch()
-    
-    transform = A.Compose([                                                                      
-                       A.SmallestMaxSize(225),
-                       A.RandomCrop(224, 224),
-                       ToTensorV2()
-    ])
-    
-
-    model = YuShanClassifier.load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else YuShanClassifier()
+    parser = make_parser()
+    args = parser.parse_args()
+    model = get_model()    
     save_config(folder_path=mcfg.model_folder_path, model=model)
-
-    train_input = {'path': train_image_paths, 'int_label': train_int_labels}
-    valid_input = {'path': valid_image_paths, 'int_label': valid_int_labels}
-
-    data_module = YushanDataModule(train_input, valid_input, transform=transform)
+    
+    data_module = create_datamodule(args)
+    
     logger = TensorBoardLogger(mcfg.logger_path, name=mcfg.model_type, version=mcfg.version)
-
 
     checkpoint_callback = ModelCheckpoint(
         monitor=mcfg.monitor,
