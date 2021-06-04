@@ -1,4 +1,13 @@
 
+import matplotlib.pyplot as plt
+import cv2
+from PIL import Image
+import time
+import re
+import multiprocessing
+import os
+import shutil
+import tarfile
 # data functions
 def word2int_label(label):
     """
