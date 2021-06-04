@@ -8,6 +8,8 @@ import multiprocessing
 import os
 import shutil
 import tarfile
+import torch
+
 # data functions
 def word2int_label(label):
     """

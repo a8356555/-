@@ -1,3 +1,9 @@
+# config.py
+import torch
+from datetime import date
+import os
+from torchvision import models
+import json
 
 # data config
 class dcfg: 
@@ -33,14 +39,17 @@ class mcfg:
         version = f'{today}.{version_num}'
     
     model_folder_path = os.path.join(logger_path, model_type, version)
-
     is_pretrained = True
     is_customized = False
     raw_model = models.resnet18(pretrained=is_pretrained)
     pred_size = len(word_classes)
+
     log_every_n_steps = 100
-    save_every_n_epoch = 20
+    save_every_n_epoch = 20    
+    model_ckpt_dirname = 'checkpoints'
+    monitor = 'val_loss'
     save_top_k_models = 2
+    
     max_epochs = 150
     gpus = 1
     lr = 1e-3 # 3e-4
