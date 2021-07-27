@@ -1,17 +1,15 @@
 # model.py
 import pytorch_lightning as pl
-from config import mcfg, dcfg, ocfg
+from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
-
-class CustomModel(nn.Module):
-    pass
+from torchvision import models
+from .config import mcfg, dcfg, ocfg
 
 class YuShanClassifier(pl.LightningModule):
-    def __init__(self, model):
+    def __init__(self, raw_model):
         super().__init__()        
-        self.model = model
-        self.time = 0
+        self.model = raw_model
         
     def forward(self, x):
         return self.model(x)
@@ -25,6 +23,7 @@ class YuShanClassifier(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         if batch_idx == 1:
+            print(f'current epoch: {self.current_epoch}')
             !nvidia-smi        
        
         x, y = self.process_batch(train_batch)
@@ -56,6 +55,7 @@ class YuShanClassifier(pl.LightningModule):
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
     
     def validation_epoch_end(self, outputs):
+        print('I Do Valid')
         epoch_corrects = sum([x['running_corrects'] for x in outputs])
         dataset_size = sum([x['batch_size'] for x in outputs])
         acc = epoch_corrects/dataset_size  
@@ -66,27 +66,19 @@ class YuShanClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
         if ocfg.has_differ_lr:
-            fc_params = list(map(id, self.model.fc.parameters()))
-            layer4_params = list(map(id, self.model.layer4.parameters()))
-            all_params = list(map(id, self.model.parameters()))
-            base_params = filter(lambda p: id(p) not in fc_params + layer4_params,
-                                self.model.parameters())
-            params_group = [
-                            {'params': base_params, 'lr': ocfg.lr_group[0]},
-                            {'params': self.model.layer4.parameters(), 'lr': ocfg.lr_group[1]},
-                            {'params': self.model.fc.parameters(), 'lr': ocfg.lr_group[2]}
-            ]                
-            
+            params_group = self._get_params_group()
+            print(params_group)
+
             optimizer = torch.optim.Adam(params_group, weight_decay=ocfg.weight_decay) if ocfg.optim_name == 'Adam' else \
                         torch.optim.SGD(params_group, momentum=ocfg.momentum, weight_decay=ocfg.weight_decay)
 
         else:
-            optimizer = torch.optim.Adam(lr=ocfg.lr, weight_decay=ocfg.weight_decay) if ocfg.optim_name == 'Adam' else \
-                        torch.optim.SGD(lr=ocfg.lr, momentum=ocfg.momentum, weight_decay=ocfg.weight_decay)
+            optimizer = torch.optim.Adam(self.model.parameters(), lr=ocfg.lr, weight_decay=ocfg.weight_decay) if ocfg.optim_name == 'Adam' else \
+                        torch.optim.SGD(self.model.parameters(), lr=ocfg.lr, momentum=ocfg.momentum, weight_decay=ocfg.weight_decay)
 
         if ocfg.has_scheduler:
             if ocfg.schdlr_name == 'OneCycleLR':
-                scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=ocfg.max_lr, total_steps=ocfg.total_steps)  # 设置学习率下降策略
+                scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=ocfg.max_lr, total_steps=ocfg.total_steps)  # 设置学习率下降策略
 
             return {
                 'optimizer': optimizer,
@@ -97,40 +89,168 @@ class YuShanClassifier(pl.LightningModule):
             }
         else:
             return optimizer
-
-class DaliYuShanClassifier(YuShanClassifier):
-    def __init__(self, train_input, valid_input):
-        super().__init__()
-        self.train_input = train_input
-        self.valid_input = valid_input 
-        
-    # def prepare_data():
-    #     self.pip_train = CustomPipeline(self.train_input['path'], self.train_input['int_label'], dcfg.batch_size)
-    #     self.pip_train.build()
-    #     print('train built')
-    #     self.train_loader = DALIClassificationIterator(self.pip_train, size=pip_train.epoch_size("r"))
-
-    #     self.pip_valid = CustomPipeline(self.valid_input['path'], self.valid_input['int_label'], dcfg.batch_size)
-    #     self.pip_valid.build()
-    #     print('valid built')
-    #     self.valid_loader = DALIClassificationIterator(self.pip_valid, size=pip_valid.epoch_size("r"))        
-        
-    def train_dataloader(self):
-        # return self.train_loader
-        return dali_iter_train
     
-    def val_dataloader(self):
-        # return self.valid_loader
-        return dali_iter_train
+    def _get_params_group(self):
+        """
+        customizer for diffirent model
+        """
+        pass
 
-    def process_batch(self, batch):
-        x = batch[0]["data"]
-        y = batch[0]["label"].squeeze(-1).long().cuda()
-        return (x, y)
-
-def get_model()
-    model = mcfg.raw_model
-    num_input_fts = self.model.fc.in_features
-    model.fc = nn.Linear(num_input_fts, mcfg.pred_size)
+class ResNetClassifier(YuShanClassifier):
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
+        num_input_fts = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_input_fts, mcfg.pred_size)        
+        self.time = 0
+    
+    def _get_params_group(self):
+        fc_params = list(map(id, self.model.fc.parameters()))
+        layer4_params = list(map(id, self.model.layer4.parameters()))
+        all_params = list(map(id, self.model.parameters()))
+        base_params = filter(lambda p: id(p) not in fc_params + layer4_params,
+                            self.model.parameters())
+        params_group = [
+                        {'params': base_params, 'lr': ocfg.lr_group[0]},
+                        {'params': self.model.layer4.parameters(), 'lr': ocfg.lr_group[1]},
+                        {'params': self.model.fc.parameters(), 'lr': ocfg.lr_group[2]}
+        ]                
+        return params_group
         
-    model = YuShanClassifier(model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else YuShanClassifier(model)
+
+class EfficientClassifier(YuShanClassifier):
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
+        num_input_fts = self.model._fc.in_features
+        self.model._fc = nn.Linear(num_input_fts, mcfg.pred_size)        
+        self.time = 0
+    
+    def _get_params_group(self):
+        fc_params_id = list(map(id, self.model._fc.parameters()))
+        tail_params_id = list(map(id, self.model._blocks[-3:].parameters()))
+        base_params = filter(lambda p: id(p) not in fc_params_id + tail_params_id,
+                            self.model.parameters())
+        tail_params = filter(lambda p: id(p) in  tail_params_id,
+                            self.model.parameters())
+        params_group = [
+                        {'params': base_params, 'lr': ocfg.lr_group[0]},
+                        {'params': tail_params, 'lr': ocfg.lr_group[1]},
+                        {'params': self.model._fc.parameters(), 'lr': ocfg.lr_group[2]}
+        ]                
+        return params_group
+
+class GrayModel(nn.Module):
+    def __init__(self, raw_model):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 3, 3, 1, padding=1)
+        self.model = raw_model
+
+    def forward(self, x):
+        x = self.conv1(x)        
+        return self.model(x)
+
+
+class GrayResClassifier(YuShanClassifier):
+    def __init__(self, raw_model):
+        super().__init__(None)
+        self.model = GrayModel(raw_model)
+        num_input_fts = self.model.model.fc.in_features
+        self.model.model.fc = nn.Linear(num_input_fts, mcfg.pred_size)        
+        self.time = 0
+                    
+    def _get_params_group(self):
+        conv1_params_id = list(map(id, self.model.conv1.parameters())) 
+        fc_params_id = list(map(id, self.model.model.fc.parameters()))
+        layer4_params_id = list(map(id, self.model.model.layer4.parameters()))
+        base_params = filter(lambda p: id(p) not in fc_params_id + layer4_params_id + conv1_params_id,
+                            self.model.parameters())
+        params_group = [
+                        {'params': base_params, 'lr': ocfg.lr_group[0]},
+                        {'params': self.model.model.layer4.parameters(), 'lr': ocfg.lr_group[1]},
+                        {'params': self.model.model.fc.parameters(), 'lr': ocfg.lr_group[2]},
+                        {'params': self.model.conv1.parameters(), 'lr': ocfg.lr_group[2]}
+        ]        
+        return params_group 
+
+
+class GrayEffClassifier(YuShanClassifier):
+    def __init__(self, raw_model):
+        super().__init__(None)
+        self.model = GrayModel(raw_model)
+        num_input_fts = self.model.model._fc.in_features
+        self.model.model._fc = nn.Linear(num_input_fts, mcfg.pred_size)        
+        self.time = 0
+                    
+    def _get_params_group(self):
+        con1_params_id = list(map(id, self.model.conv1.parameters())) 
+        fc_params_id = list(map(id, self.model.model._fc.parameters()))
+        tail_params_id = list(map(id, self.model.model._blocks[-3:].parameters()))
+        base_params = filter(lambda p: id(p) not in fc_params_id + tail_params_id + con1_params_id,
+                            self.model.parameters())
+        tail_params = filter(lambda p: id(p) in  tail_params_id,
+                            self.model.parameters())
+        params_group = [
+                        {'params': base_params, 'lr': ocfg.lr_group[0]},
+                        {'params': tail_params, 'lr': ocfg.lr_group[1]},
+                        {'params': self.model.model._fc.parameters(), 'lr': ocfg.lr_group[2]},
+                        {'params': self.model.conv1.parameters(), 'lr': ocfg.lr_group[2]}
+        ]        
+        
+        return params_group 
+
+
+class CustomModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        pass
+    def forward(self, x):
+        pass
+
+
+class CustomModelClassifier(YuShanClassifier):
+    def __init__(self, custom_model):
+        super.__init__(None)
+        self.model = custom_model
+        pass
+        # set custom model architecture
+
+    def _get_params_group(self):
+        pass
+        # set param group
+        # return params_group
+
+def get_raw_model():    
+    if '18' in mcfg.model_type:
+        print('get res18!')
+        raw_model = models.resnet18(pretrained=mcfg.is_pretrained)    
+    elif '34' in mcfg.model_type:
+        print('get res34!')
+        raw_model = models.resnet34(pretrained=mcfg.is_pretrained)
+    elif '50' in mcfg.model_type:
+        print('get res50!')
+        raw_model = models.resnet50(pretrained=mcfg.is_pretrained)
+    elif 'b0' in mcfg.model_type:
+        print('get eff-net-b0!')
+        raw_model = EfficientNet.from_pretrained('efficientnet-b0')
+    elif 'b1' in mcfg.model_type:
+        print('get eff-net-b1!')
+        raw_model = EfficientNet.from_pretrained('efficientnet-b1')
+    elif 'b2' in mcfg.model_type:
+        print('get eff-net-b2!')
+        raw_model = EfficientNet.from_pretrained('efficientnet-b2')
+    elif 'custom' in mcfg.model_type:
+        raw_model = CustomModel()
+    return raw_model
+
+def get_model():
+    raw_model = get_raw_model()
+
+    if 'res' in mcfg.model_type:
+        model = GrayResClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayResClassifier(raw_model)
+    elif 'eff' in mcfg.model_type:
+        model = GrayEffClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayEffClassifier(raw_model)
+    elif 'custom' in mcfg.model_type:
+        model = CustomModelClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else CustomModelClassifier(raw_model)
+    # elif ...
+    else:
+        raise RuntimeError("invalid model type config")
+    return model
