@@ -6,6 +6,7 @@ import re
 import os
 import numpy as np
 from pathlib import Path
+# please see #TODO
 
 class ImageReader:
     @classmethod
@@ -210,6 +211,7 @@ class FileHandler:
 
     @classmethod
     def make_noisy_student_training_data():
+        # TODO
         valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
         valid_image_paths, valid_int_labels = cls.read_path_and_label_from_txt(valid_txt_path)
         df_all, df_revised, df_checked = load_target_dfs()

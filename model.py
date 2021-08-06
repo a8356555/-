@@ -6,11 +6,12 @@ from torch import nn
 from torchvision import models
 from .config import mcfg, dcfg, ocfg
 
+
 class YuShanClassifier(pl.LightningModule):
-    def __init__(self, raw_model):
+    def __init__(self):
         super().__init__()        
-        self.model = raw_model
-        
+        self.model = _get_raw_model()        
+
     def forward(self, x):
         return self.model(x)
 
@@ -39,7 +40,7 @@ class YuShanClassifier(pl.LightningModule):
         epoch_corrects = sum([x['running_corrects'] for x in outputs])
         dataset_size = sum([x['batch_size'] for x in outputs])
         acc = epoch_corrects/dataset_size
-        loss = sum([x['loss'] for x in outputs])/len(self.trainer.datamodule.train_dataloader())
+        loss = sum([x['loss'] for x in outputs])/dataset_size
 
         print(f'- train_epoch_acc: {acc}, train_loss: {loss}\n')
         self.log('train_epoch_acc', acc)
@@ -55,11 +56,10 @@ class YuShanClassifier(pl.LightningModule):
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
     
     def validation_epoch_end(self, outputs):
-        print('I Do Valid')
         epoch_corrects = sum([x['running_corrects'] for x in outputs])
         dataset_size = sum([x['batch_size'] for x in outputs])
         acc = epoch_corrects/dataset_size  
-        loss = sum([x['loss'] for x in outputs])/len(self.trainer.datamodule.val_dataloader())
+        loss = sum([x['loss'] for x in outputs])/dataset_size
 
         print(f'- val_epoch_acc: {acc}, val_loss: {loss}\n')        
         self.log('val_epoch_acc', acc)    
@@ -92,16 +92,16 @@ class YuShanClassifier(pl.LightningModule):
     
     def _get_params_group(self):
         """
-        customizer for diffirent model
+        customizer for model enabling differ learning rate
         """
         pass
 
 class ResNetClassifier(YuShanClassifier):
-    def __init__(self, raw_model):
-        super().__init__(raw_model)
+    def __init__(self):
+        super().__init__()
+        self.model = _get_raw_model()
         num_input_fts = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_input_fts, mcfg.pred_size)        
-        self.time = 0
+        self.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
     
     def _get_params_group(self):
         fc_params = list(map(id, self.model.fc.parameters()))
@@ -116,13 +116,12 @@ class ResNetClassifier(YuShanClassifier):
         ]                
         return params_group
         
-
 class EfficientClassifier(YuShanClassifier):
-    def __init__(self, raw_model):
-        super().__init__(raw_model)
+    def __init__(self):
+        super().__init__()
+        self.model = _get_raw_model()
         num_input_fts = self.model._fc.in_features
-        self.model._fc = nn.Linear(num_input_fts, mcfg.pred_size)        
-        self.time = 0
+        self.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
     
     def _get_params_group(self):
         fc_params_id = list(map(id, self.model._fc.parameters()))
@@ -139,28 +138,26 @@ class EfficientClassifier(YuShanClassifier):
         return params_group
 
 class GrayModel(nn.Module):
-    def __init__(self, raw_model):
+    def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 3, 3, 1, padding=1)
-        self.model = raw_model
-
+        self.model = _get_raw_model()
     def forward(self, x):
         x = self.conv1(x)        
         return self.model(x)
 
-
 class GrayResClassifier(YuShanClassifier):
-    def __init__(self, raw_model):
-        super().__init__(None)
-        self.model = GrayModel(raw_model)
+    def __init__(self):
+        super().__init__()
+        self.model = GrayModel()
         num_input_fts = self.model.model.fc.in_features
-        self.model.model.fc = nn.Linear(num_input_fts, mcfg.pred_size)        
-        self.time = 0
+        self.model.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
                     
     def _get_params_group(self):
         conv1_params_id = list(map(id, self.model.conv1.parameters())) 
         fc_params_id = list(map(id, self.model.model.fc.parameters()))
         layer4_params_id = list(map(id, self.model.model.layer4.parameters()))
+        # all_params = list(map(id, self.model.parameters()))
         base_params = filter(lambda p: id(p) not in fc_params_id + layer4_params_id + conv1_params_id,
                             self.model.parameters())
         params_group = [
@@ -171,14 +168,12 @@ class GrayResClassifier(YuShanClassifier):
         ]        
         return params_group 
 
-
 class GrayEffClassifier(YuShanClassifier):
-    def __init__(self, raw_model):
-        super().__init__(None)
-        self.model = GrayModel(raw_model)
+    def __init__(self):
+        super().__init__()
+        self.model = GrayModel()
         num_input_fts = self.model.model._fc.in_features
-        self.model.model._fc = nn.Linear(num_input_fts, mcfg.pred_size)        
-        self.time = 0
+        self.model.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
                     
     def _get_params_group(self):
         con1_params_id = list(map(id, self.model.conv1.parameters())) 
@@ -197,7 +192,6 @@ class GrayEffClassifier(YuShanClassifier):
         
         return params_group 
 
-
 class CustomModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -205,11 +199,9 @@ class CustomModel(nn.Module):
     def forward(self, x):
         pass
 
-
 class CustomModelClassifier(YuShanClassifier):
-    def __init__(self, custom_model):
-        super.__init__(None)
-        self.model = custom_model
+    def __init__(self):
+        self.model = CustomModel()
         pass
         # set custom model architecture
 
@@ -218,7 +210,7 @@ class CustomModelClassifier(YuShanClassifier):
         # set param group
         # return params_group
 
-def get_raw_model():    
+def _get_raw_model():    
     if '18' in mcfg.model_type:
         print('get res18!')
         raw_model = models.resnet18(pretrained=mcfg.is_pretrained)    
@@ -237,19 +229,20 @@ def get_raw_model():
     elif 'b2' in mcfg.model_type:
         print('get eff-net-b2!')
         raw_model = EfficientNet.from_pretrained('efficientnet-b2')
-    elif 'custom' in mcfg.model_type:
-        raw_model = CustomModel()
+    # elif ...
     return raw_model
 
-def get_model():
-    raw_model = get_raw_model()
-
+def get_model():    
     if 'res' in mcfg.model_type:
-        model = GrayResClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayResClassifier(raw_model)
+        model = ResClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else ResClassifier()
     elif 'eff' in mcfg.model_type:
-        model = GrayEffClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayEffClassifier(raw_model)
+        model = EfficientClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else EfficientClassifier()
+    elif 'res' in mcfg.model_type and 'gray' in mcfg.model_type:
+        model = GrayResClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayResClassifier()
+    elif 'eff' in mcfg.model_type and 'gray' in mcfg.model_type:
+        model = GrayEffClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayEffClassifier()
     elif 'custom' in mcfg.model_type:
-        model = CustomModelClassifier(raw_model).load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else CustomModelClassifier(raw_model)
+        model = CustomModelClassifier.load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else CustomModelClassifier()
     # elif ...
     else:
         raise RuntimeError("invalid model type config")

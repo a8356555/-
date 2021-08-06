@@ -4,7 +4,14 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import albumentations.augmentations.transforms as transforms
 
-
+from .config import dcfg
+# preprocess.py
+def _get_copyMakeBorder_flag():
+    if 'replicate' in dcfg.transform_approach:
+        return cv2.BORDER_REPLICATE
+    else:
+        return cv2.BORDER_WRAP
+        
 def _custom_opencv(image):
     # 加邊框
     h, w, c = image.shape
@@ -15,8 +22,9 @@ def _custom_opencv(image):
         dw_half = int(0.1*w/2)
         dh_half = int((w+2*dw_half-h)/2)
         
-    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, cv2.BORDER_WRAP)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) if 'gray' in mcfg.model_type else image
+    flag = _get_copyMakeBorder_flag()
+    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
     return image
 
 def transform_func(image=None):    
@@ -29,18 +37,9 @@ def transform_func(image=None):
                         ToTensorV2()
                 ])
     image = _custom_opencv(image)    
-    return transform(image=image)['image']
+    return transform(image=image)['image']/255.0
 
 
-def raw_transform_func(image=None):   
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
-    transform = A.Compose([      
-                        A.SmallestMaxSize(225),  # 變形                                                     
-                        A.CenterCrop(224, 224),
-                        A.RandomRotate90(p=0.2),
-                        ToTensorV2()
-                ])    
-    return transform(image=image)['image']
 
 def second_source_custom_opencv(img):
     # 加邊框
