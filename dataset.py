@@ -1,8 +1,15 @@
 # dataset.py
 from torch.utils.data import Dataset, DataLoader, random_split
+
+# !pip install pytorch-lightning
+import pytorch_lightning as pl
+# !pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
+from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
+
 from .preprocess import transform_func, second_source_transform_func
 from .utils import ImageReader
 from .config import dcfg
+from .model import TrainPipeline
 
 class YuShanDataset(Dataset):
     def __init__(self, input, transform=None):    
@@ -46,24 +53,31 @@ class YushanDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(self.valid, batch_size=dcfg.batch_size, num_workers=dcfg.num_workers, pin_memory=dcfg.is_memory_pinned)        
 
-def get_second_source_data():
-    #TODO: 修改到 utils 下
-    df_train = pd.read_csv('/content/gdrive/MyDrive/SideProject/YuShanCompetition/new_data_train.csv')
-    df_valid = pd.read_csv('/content/gdrive/MyDrive/SideProject/YuShanCompetition/new_data_valid.csv')
+class daliModule(pl.LightningDataModule):
+    def __init__(self, train_input, valid_input):
+        super(daliModule, self).__init__()
+        self.pip_train = TrainPipeline(train_input['path'], train_input['int_label'])
+        self.pip_train.build()
+        self.pip_valid = TrainPipeline(valid_input['path'], valid_input['int_label'], phase='valid')
+        self.pip_valid.build()
+        self.train_loader = DALIClassificationIterator(self.pip_train, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
+        self.valid_loader = DALIClassificationIterator(self.pip_valid, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
     
-    train_image_paths = df_train['path'].to_numpy()
-    train_int_labels = df_train['int_label'].to_numpy()
-    valid_image_paths = df_valid['path'].to_numpy()
-    valid_int_labels = df_valid['int_label'].to_numpy()
-    return train_image_paths, train_int_labels, valid_image_paths, valid_int_labels
+    def train_dataloader(self):
+        return self.train_loader
+        
+    def val_dataloader(self):
+        return self.valid_loader
+
 
 def create_datamodule(args):
+    #TODO: adding dali
     if args.source == 'origin':
         train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels()
         transform_func = transform_func
         
     elif args.source == 'second':
-        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = get_second_source_data()
+        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_second_source_data()
         transform_func = second_source_transform_func
 
     valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") if is_first_time else None

@@ -1,11 +1,21 @@
 # model.py
+
+# !pip install pytorch-lightning
 import pytorch_lightning as pl
+# !pip install efficientnet_pytorch
 from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
 from torchvision import models
 from .config import mcfg, dcfg, ocfg
 
+# !pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
+from nvidia.dali.pipeline import Pipeline
+import nvidia.dali.fn as fn
+import nvidia.dali.types as types
+import nvidia.dali.ops as ops
+import nvidia.dali.plugin.pytorch as dalitorch
+import torch.utils.dlpack as torch_dlpack
 
 class YuShanClassifier(pl.LightningModule):
     def __init__(self):
@@ -25,7 +35,7 @@ class YuShanClassifier(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         if batch_idx == 1:
             print(f'current epoch: {self.current_epoch}')
-            !nvidia-smi        
+            system("!nvidia-smi")        
        
         x, y = self.process_batch(train_batch)
         logits = self.forward(x)
@@ -210,6 +220,79 @@ class CustomModelClassifier(YuShanClassifier):
         # set param group
         # return params_group
 
+
+# ------------------
+# DALI
+# ------------------
+
+
+class TrainPipeline(Pipeline):
+    def __init__(self, image_paths, int_labels, phase='train', device_id=0):        
+        super(TrainPipeline, self).__init__(dcfg.batch_size, dcfg.num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)        
+        random_shuffle = True if phase == 'train' else False
+        self.input = ops.readers.File(files=list(image_paths), labels=list(int_labels), random_shuffle=random_shuffle, name="Reader")
+        self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
+        dali_device = 'gpu'
+        self.resize = ops.Resize(device=dali_device)
+        self.crop = ops.Crop(device=dali_device, crop=[224.0, 224.0], dtype=types.FLOAT)
+        self.rotate = ops.Rotate(device=dali_device)  
+        self.transpose = ops.Transpose(device=dali_device, perm=[2, 0, 1])
+        self.phase=phase
+
+    def define_graph(self):
+        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
+        self.jpegs, self.labels = self.input() # (name='r')
+        output = self.decode(self.jpegs)
+        output = fn.python_function(output, function=dali_custom_func)
+        if 'gary' in mcfg.model_type:
+            output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
+        if self.phase == 'train':
+            w = fn.random.uniform(range=(224.0, 320.0))
+            h = fn.random.uniform(range=(224.0, 320.0))        
+            output = self.resize(output, resize_x=w, resize_y=h)        
+        else:
+            output = self.resize(output, size=(248.0, 248.0))
+        output = self.crop(output)        
+        output = self.rotate(output, angle=angle)
+        output = self.transpose(output)
+        output = output/255.0
+        return (output, self.labels)
+
+# class LightningWrapper(DALIClassificationIterator):
+#     def __init__(self, *kargs, **kvargs):
+#         super().__init__(*kargs, **kvargs)
+#         self.__code__ = None
+#     def __next__(self):
+#         out = super().__next__()
+#         # DDP is used so only one pipeline per process
+#         # also we need to transform dict returned by DALIClassificationIterator to iterable
+#         # and squeeze the lables
+#         out = out[0]
+#         return (out[k] if k != "label" else torch.squeeze(out[k]) for k in self.output_map)
+
+class DaliEffClassifier(EfficientClassifier):    
+    def __init__(self):
+        super().__init__()
+        self._save_parameters = {}
+
+    def validation_epoch_end(self, outputs):
+        epoch_corrects = sum([x['running_corrects'] for x in outputs])
+        dataset_size = sum([x['batch_size'] for x in outputs])
+        acc = epoch_corrects/dataset_size  
+        loss = sum([x['loss'] for x in outputs])/dataset_size
+
+        print(f'- val_epoch_acc: {acc}, val_loss: {loss}\n')        
+        self.log('val_epoch_acc', acc)                 
+        self.trainer.datamodule.val_dataloader().reset()
+
+    def process_batch(self, batch):
+        x, y = batch[0]['data'], batch[0]['label'].squeeze(-1)
+        return x.float(), y.long()  
+
+
+
+
+
 def _get_raw_model():    
     if '18' in mcfg.model_type:
         print('get res18!')
@@ -232,7 +315,8 @@ def _get_raw_model():
     # elif ...
     return raw_model
 
-def get_model():    
+def get_model(): 
+    #TODO: adding dali   
     if 'res' in mcfg.model_type:
         model = ResClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else ResClassifier()
     elif 'eff' in mcfg.model_type:
