@@ -1,9 +1,7 @@
 # dataset.py
 from torch.utils.data import Dataset, DataLoader, random_split
 
-# !pip install pytorch-lightning
 import pytorch_lightning as pl
-# !pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
 
 from .preprocess import transform_func, second_source_transform_func

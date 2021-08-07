@@ -1,34 +1,32 @@
 import cv2
 import numpy as np
-# !pip install --upgrade --force-reinstall --no-deps albumentations
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import albumentations.augmentations.transforms as transforms
-# !pip install cupy-cuda110
 import cupy
 
-from .config import dcfg
+from .config import dcfg, mcfg
 
-# preprocess.py
-# def _get_copyMakeBorder_flag():
-#     if 'replicate' in dcfg.transform_approach:
-#         return cv2.BORDER_REPLICATE
-#     else:
-#         return cv2.BORDER_WRAP
+preprocess.py
+def _get_copyMakeBorder_flag():
+    if 'replicate' in dcfg.transform_approach:
+        return cv2.BORDER_REPLICATE
+    else:
+        return cv2.BORDER_WRAP
         
-# def _custom_opencv(image):
-#     # 加邊框
-#     h, w, c = image.shape
-#     if h > w:
-#         dh_half = int(0.1*h/2)
-#         dw_half = int((h+2*dh_half-w)/2)
-#     else:
-#         dw_half = int(0.1*w/2)
-#         dh_half = int((w+2*dw_half-h)/2)
-#     image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-#     flag = _get_copyMakeBorder_flag()
-#     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
-#     return image
+def _custom_opencv(image):
+    # 加邊框
+    h, w, c = image.shape
+    if h > w:
+        dh_half = int(0.1*h/2)
+        dw_half = int((h+2*dh_half-w)/2)
+    else:
+        dw_half = int(0.1*w/2)
+        dh_half = int((w+2*dw_half-h)/2)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    flag = _get_copyMakeBorder_flag()
+    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
+    return image
 
 def transform_func(image=None):    
     h = np.random.randint(224, 320)

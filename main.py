@@ -1,8 +1,4 @@
 # running on colab
-!pip install pytorch-lightning
-!pip install --upgrade --force-reinstall --no-deps albumentations
-!pip install efficientnet_pytorch
-
 from google.colab import drive
 drive.mount('/content/gdrive')
 

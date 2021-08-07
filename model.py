@@ -1,15 +1,12 @@
 # model.py
 
-# !pip install pytorch-lightning
 import pytorch_lightning as pl
-# !pip install efficientnet_pytorch
 from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
 from torchvision import models
 from .config import mcfg, dcfg, ocfg
 
-# !pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
