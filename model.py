@@ -1,5 +1,5 @@
 # model.py
-
+import os
 import pytorch_lightning as pl
 from efficientnet_pytorch import EfficientNet
 import torch
@@ -18,7 +18,6 @@ class YuShanClassifier(pl.LightningModule):
     def __init__(self):
         super().__init__()        
         self.model = _get_raw_model()        
-
     def forward(self, x):
         return self.model(x)
 
@@ -29,10 +28,10 @@ class YuShanClassifier(pl.LightningModule):
     def cross_entropy_loss(self, logits, labels):
         return nn.CrossEntropyLoss()(logits, labels)
 
-    def training_step(self, train_batch, batch_idx):
+    def training_step(self, train_batch, batch_idx):        
         if batch_idx == 1:
             print(f'current epoch: {self.current_epoch}')
-            system("!nvidia-smi")        
+            #os.system("nvidia-smi")        
        
         x, y = self.process_batch(train_batch)
         logits = self.forward(x)

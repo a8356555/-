@@ -7,7 +7,6 @@ import cupy
 
 from .config import dcfg, mcfg
 
-preprocess.py
 def _get_copyMakeBorder_flag():
     if 'replicate' in dcfg.transform_approach:
         return cv2.BORDER_REPLICATE
