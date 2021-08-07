@@ -287,7 +287,7 @@ class FileHandler:
         df_clean_null = df_revised[(~df_revised['path'].isin(valid_image_paths)) & null_cond]
         df_clean = df_clean_null.append(df_clean_not_null, ignore_index=True)
         clean_image_paths, clean_int_labels = df_clean['path'].to_list(), df_clean['int_label'].to_list()
-        clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/clean_balanced_images.txt'
+        clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
 
