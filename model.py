@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torchvision import models
 from .config import mcfg, dcfg, ocfg
+from .preprocess import dali_custom_func
 
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.fn as fn
