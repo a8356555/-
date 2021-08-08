@@ -227,7 +227,7 @@ def change_config(
 
         model_folder_path = mcfg.root_model_folder / mcfg.model_type / mcfg.version        
         _handle_not_exist_folder(model_folder_path)
-    
+        mcfg.model_folder_path = model_folder_path
     if 'optim_name' in kwargs.keys():
         ocfg.optim_name = kwargs['optim_name']
     if 'lr' in kwargs.keys():
