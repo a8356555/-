@@ -333,7 +333,7 @@ def get_model():
     elif 'custom' in MCFG.model_type:
         model = CustomModelClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else CustomModelClassifier()
     elif 'noisy_student' in MCFG.model_type:
-        model = 
+        model = NoisyStudentDaliEffClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else NoisyStudentDaliEffClassifier()
     # elif ...
     else:
         raise RuntimeError("invalid model type config")
