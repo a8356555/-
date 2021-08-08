@@ -105,7 +105,8 @@ def print_existing_model_version_and_info(model_folder):
         config = load_config(ver_folder_path)
         other_setting = config['other_settings'] if config else "No Config"
         ckpt_files = ', '.join([ckpt_path.name for ckpt_path in ver_folder_path.glob("**/*.ckpt")])
-        lastest_metrics = MetricHandler.get_lastest_metrics_from_txt(ver_folder_path/'metrics.txt')
+        metric_txt_path = ver_folder_path/"metrics.txt"        
+        lastest_metrics = MetricHandler.get_lastest_metrics_from_txt(metric_txt_path)
         print_dict["ver:    " + ver_folder_path.name] = (other_setting, ckpt_files, lastest_metrics)
 
     print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=4))
@@ -154,7 +155,7 @@ def _choose_model_version_N_ckpt_path(is_continued, root_model_folder, model_typ
             model_type = input('Please input correct existing model type: (list above) ')
             model_folder = root_model_folder / model_type
         
-        print_existing_model_version_and_info()
+        print_existing_model_version_and_info(model_folder)
         
         # Choose a specific version and loop until the version input is valid
         version = input('Please enter model version wanted: ')         

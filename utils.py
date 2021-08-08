@@ -327,11 +327,11 @@ class MetricHandler:
         with open(metric_txt_path, 'a') as out_file:
             out_file.write(f"epoch: {epoch}, loss: {loss}, accuracy: {accuracy}")
 
-    def get_lastest_metrics_from_txt(cls, metric_txt_path):
-        if not os.path.exists(metric_txt_path):
+    def get_lastest_metrics_from_txt(cls, metrics_txt_path):
+        if not os.path.exists(metrics_txt_path):
             return ""
         
-        with open(metric_txt_path) as in_file:
+        with open(metrics_txt_path) as in_file:
             final_record = in_file.readlines()[-1]
         return final_record
 
