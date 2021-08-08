@@ -209,10 +209,9 @@ class FileHandler:
         train_image_paths, train_int_labels = cls.read_path_and_label_from_txt(train_txt_path)
         valid_image_paths, valid_int_labels = cls.read_path_and_label_from_txt(valid_txt_path)
         return train_image_paths, train_int_labels, valid_image_paths, valid_int_labels
-
-
+    
     @classmethod
-    def get_second_source_data():
+    def get_second_source_data(cls):
         df_train = pd.read_csv('/content/gdrive/MyDrive/SideProject/YuShanCompetition/new_data_train.csv')
         df_valid = pd.read_csv('/content/gdrive/MyDrive/SideProject/YuShanCompetition/new_data_valid.csv')
         
@@ -289,8 +288,31 @@ class FileHandler:
         clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
+class NoisyStudentDataHandler:
     @classmethod
-    def _make_noisy_student_training_data_once():
+    def save_pseudo_label_to_txt(cls, pseudo_labels, pseudo_label_txt_path):
+        with open(pseudo_label_txt_path, 'w') as out_file:
+            for sample_pseudo_label in pseudo_labels:
+                out_file.write(' '.join(sample_pseudo_label))
+
+    @classmethod
+    def read_pseudo_label_from_txt(cls, pseudo_label_txt_path):
+        with open(pseudo_label_txt_path) as in_file:
+            lines = in_file.readlines()
+            pseudo_labels = [line.strip().split(' ') for line in lines]
+        return pseudo_labels
+
+    @classmethod
+    def get_noisy_student_data(cls, noised_txt_path=None):
+        noised_txt_path = noised_txt_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+        noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
+        cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = cls.get_paths_and_int_labels(train_type='cleaned')
+        return ( noised_image_paths, noised_int_labels, 
+                 cleaned_image_paths, cleaned_int_labels, 
+                 valid_image_paths, valid_int_labels )
+
+    @classmethod
+    def _make_noisy_student_training_data_once(cls):
         cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cleaned_image_paths, _ = cls.read_path_and_label_from_txt(train_txt_path)
         df_all, _, _ = cls.load_target_dfs()
@@ -298,6 +320,20 @@ class FileHandler:
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
         noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
+
+class MetricHandler:
+    @classmethod
+    def save_metrics_to_txt(cls, epoch, loss, accuracy, metric_txt_path):
+        with open(metric_txt_path, 'a') as out_file:
+            out_file.write(f"epoch: {epoch}, loss: {loss}, accuracy: {accuracy}")
+
+    def get_lastest_metrics_from_txt(cls, metric_txt_path):
+        if not os.path.exists(metric_txt_path):
+            return ""
+        
+        with open(metric_txt_path) as in_file:
+            final_record = in_file.readlines()[-1]
+        return final_record
 
 word_classes = FileHandler.get_word_classes_dict()
 

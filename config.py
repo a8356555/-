@@ -4,6 +4,7 @@ import torch
 import os
 from pathlib import Path
 import json
+from .utils import MetricHandler
 
 """
 Please Jump to Bottom to Modify Config
@@ -96,6 +97,20 @@ def load_config(version_folder_path='.', file_path=None):
             data = json.load(in_file)
     return data
 
+def print_existing_model_version_and_info(model_folder):
+    """Print out existing model version name and its info"""
+    print_dict = {}
+
+    for ver_folder_path in model_folder.glob("*v[0-9]*"): 
+        config = load_config(ver_folder_path)
+        other_setting = config['other_settings'] if config else "No Config"
+        ckpt_files = ', '.join([ckpt_path.name for ckpt_path in ver_folder_path.glob("**/*.ckpt")])
+        lastest_metrics = MetricHandler.get_lastest_metrics_from_txt(ver_folder_path/'metrics.txt')
+        print_dict["ver:    " + ver_folder_path.name] = (other_setting, ckpt_files, lastest_metrics)
+
+    print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=4))
+
+
 def _handle_not_exist_folder(folder_path):
     is_existing = folder_path.exists()
     print(f'test if {folder_path} exists: {is_existing}, if False then mkdir')
@@ -128,35 +143,26 @@ def _get_ckpt_path(folder_path):
         ckpt_path = ckpt_dir_path / epoch_num
     return ckpt_path
 
-def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_type, today):
+def _choose_model_version_N_ckpt_path(is_continued, root_model_folder, model_type, today):
     import json
     if is_continued:        
-        target_model_type_folder = root_model_folder / model_type
+        model_folder = root_model_folder / model_type
         # Loop until model_type input is valid (existing)
-        while not target_model_type_folder.exists():
+        while not model_folder.exists():
             print('existing model type: ', [x.name for x in root_model_folder.glob("*")])
             print('invalid input!')
             model_type = input('Please input correct existing model type: (list above) ')
-            target_model_type_folder = root_model_folder / model_type
+            model_folder = root_model_folder / model_type
         
-        # Print out existing version folder name and its setting
-        existing_ver_paths = [x for x in folder.glob("*v[0-9]*")]
-        config = [load_config(x) for x in existing_ver_paths]
-        other_settings = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
-        print_dict = {x.name: (des + ", Having below CKPT files~" + 
-                                ', '.join([x.name for x in x.glob("**/*.ckpt")])
-                                if x.glob("*config.json") 
-                                else "There's still no config.json") 
-                        for x, des in zip(existing_ver_paths, other_settings)}
-        print('existing version: \n', json.dumps(print_dict, sort_keys=True, indent=4))
+        print_existing_model_version_and_info()
         
         # Choose a specific version and loop until the version input is valid
         version = input('Please enter model version wanted: ')         
-        target_model_folder = target_model_type_folder / version
+        target_model_folder = model_folder / version
         while not target_model_folder.exists():
             print('invalid input!')
             version = input('please enter correct model version: ')
-            target_model_folder = target_model_type_folder / version
+            target_model_folder = model_folder / version
         
         # Decide whether adding a new model version which is the continued version from the existing one
         # If enter y/yes, then input continued folder name postfix
@@ -168,28 +174,18 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
         ckpt_path = _get_ckpt_path(target_model_folder)
     else:
         # If there's no existing model type then add one
-        folder = root_model_folder / model_type
-        _handle_not_exist_folder(folder)
-
-        # Print out existing version folder name and its setting
-        existing_ver_paths = [x for x in folder.glob("*v[0-9]*")]
-        config = [load_config(x) for x in existing_ver_paths]
-        other_settings = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
-        print_dict = {x.name: (des + ", Having below CKPT files~" + 
-                                ', '.join([x.name for x in x.glob("**/*.ckpt")])
-                                if x.glob("*config.json") 
-                                else "There's still no config.json") 
-                        for x, des in zip(existing_ver_paths, other_settings)}
-        print('existing version: \n', json.dumps(print_dict, sort_keys=True, indent=4))
-
+        model_folder = root_model_folder / model_type
+        _handle_not_exist_folder(model_folder)
+        print_existing_model_version_and_info(model_folder)
+        
         # Enter a new version, if the entered version is existing, then loop again
         version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
         version = f'{today}.{version_num}'
-        version_folder = folder / version
+        version_folder = model_folder / version
         while version_folder.exists():
             version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
             version = f'{today}.{version_num}'
-            version_folder = folder / version
+            version_folder = model_folder / version
         
         ckpt_path = None
         _handle_not_exist_folder(version_folder)
@@ -281,7 +277,7 @@ class MCFG:
     
     root_model_folder = Path('/content/gdrive/MyDrive/SideProject/YuShanCompetition/model')
     today = str(date.today())
-    ckpt_path, model_type, version = _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_type, today)
+    ckpt_path, model_type, version = _choose_model_version_N_ckpt_path(is_continued, root_model_folder, model_type, today)
     model_folder_path = root_model_folder / model_type / version
 
 # optimizer configure
