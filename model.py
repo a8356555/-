@@ -125,7 +125,6 @@ class ResNetClassifier(YuShanClassifier):
 class EfficientClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
-        print(self.model)
         num_input_fts = self.model._fc.in_features
         self.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
     
