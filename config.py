@@ -7,9 +7,9 @@ import json
 
 """
 Please Jump to Bottom to Modify Config
-    1) data config: dcfg
-    2) model config: mcfg
-    3) optimizer config: ocfg
+    1) data config: DCFG
+    2) model config: MCFG
+    3) optimizer config: OCFG
 """
 
 
@@ -23,44 +23,44 @@ def save_config(folder_path=Path('/content'), model=None, is_user_input_needed=T
     _handle_not_exist_folder(folder_path)
     
     output_dict = {
-        'date': str(mcfg.today,),
-        'batch_size': dcfg.batch_size,
-        'num_workers': dcfg.num_workers,
-        'is_memory_pinned': dcfg.is_memory_pinned,
+        'date': str(MCFG.today,),
+        'batch_size': DCFG.batch_size,
+        'num_workers': DCFG.num_workers,
+        'is_memory_pinned': DCFG.is_memory_pinned,
         'model': {
-            'model_type': mcfg.model_type,
-            'is_pretrained': mcfg.is_pretrained,
-            'is_customized': mcfg.is_customized,
+            'model_type': MCFG.model_type,
+            'is_pretrained': MCFG.is_pretrained,
+            'is_customized': MCFG.is_customized,
             'model_architecture': str(model).split('\n')
         },
 
         'optimizer': { 
-            'name': ocfg.optim_name,
+            'name': OCFG.optim_name,
             'learning rate': {
-                'params groups': len(ocfg.lr_group) if ocfg.has_differ_lr else 1,
-                'lr': ocfg.lr_group if ocfg.has_differ_lr else ocfg.lr,
+                'params groups': len(OCFG.lr_group) if OCFG.has_differ_lr else 1,
+                'lr': OCFG.lr_group if OCFG.has_differ_lr else OCFG.lr,
             },            
             'optimizer params': {
-                'momentum': ocfg.momentum,
-                'weight_decay': ocfg.weight_decay
+                'momentum': OCFG.momentum,
+                'weight_decay': OCFG.weight_decay
             },
 
             'scheduler': {
-                'has_scheduler': ocfg.has_scheduler,
-                'name': ocfg.schdlr_name,
+                'has_scheduler': OCFG.has_scheduler,
+                'name': OCFG.schdlr_name,
                 'scheduler params': {
-                    'total_steps': ocfg.total_steps,
-                    'max_lr': ocfg.max_lr
+                    'total_steps': OCFG.total_steps,
+                    'max_lr': OCFG.max_lr
                 }
             }
         },
         'Apex': {
-            'is_apex_used': mcfg.is_apex_used,
-            'amp_level': mcfg.amp_level,
-            'precision': mcfg.precision
+            'is_apex_used': MCFG.is_apex_used,
+            'amp_level': MCFG.amp_level,
+            'precision': MCFG.precision
         },
-        'max_epochs': mcfg.max_epochs,
-        'other_settings': mcfg.other_settings        
+        'max_epochs': MCFG.max_epochs,
+        'other_settings': MCFG.other_settings        
     }
     print(json.dumps(output_dict, indent=4))
     target_path = folder_path / 'config.json'
@@ -210,38 +210,38 @@ def change_config(
         weight_decay = 0                                           ### 請修改
         momentum = 0.9
     """
-    mcfg.batch_size = batch_size  
-    mcfg.max_epochs = max_epochs
-    mcfg.gpus = gpus
-    dcfg.num_workers=num_workers
+    MCFG.batch_size = batch_size  
+    MCFG.max_epochs = max_epochs
+    MCFG.gpus = gpus
+    DCFG.num_workers=num_workers
     if other_settings != 'Write Something':
         assert isinstance(other_settings, str), 'invalid input data type, need to be string'
-        mcfg.other_settings = other_settings            
+        MCFG.other_settings = other_settings            
     if transform_approach != 'replicate':
-        dcfg.transform_approach = transform_approach    
+        DCFG.transform_approach = transform_approach    
     if model_type or version_num:
         if model_type:
-            mcfg.model_type = model_type
+            MCFG.model_type = model_type
         if version_num:
-            mcfg.version = f"{mcfg.today}.{version_num}"         
+            MCFG.version = f"{MCFG.today}.{version_num}"         
 
-        model_folder_path = mcfg.root_model_folder / mcfg.model_type / mcfg.version        
+        model_folder_path = MCFG.root_model_folder / MCFG.model_type / MCFG.version        
         _handle_not_exist_folder(model_folder_path)
-        mcfg.model_folder_path = model_folder_path
+        MCFG.model_folder_path = model_folder_path
     if 'optim_name' in kwargs.keys():
-        ocfg.optim_name = kwargs['optim_name']
+        OCFG.optim_name = kwargs['optim_name']
     if 'lr' in kwargs.keys():
-        ocfg.lr = kwargs['lr']
+        OCFG.lr = kwargs['lr']
     if 'has_differ_lr' in kwargs.keys():
-        ocfg.has_differ_lr = kwargs['has_differ_lr']
+        OCFG.has_differ_lr = kwargs['has_differ_lr']
     if 'lr_group' in kwargs.keys():
-        ocfg.lr_group = kwargs['lr_group']
+        OCFG.lr_group = kwargs['lr_group']
     if 'weight_decay' in kwargs.keys():
-        ocfg.weight_decay = kwargs['weight_decay']
+        OCFG.weight_decay = kwargs['weight_decay']
     if 'momentum' in kwargs.keys():
-        ocfg.momentum = kwargs['momentum']
+        OCFG.momentum = kwargs['momentum']
 
-    for cfg in [dcfg, mcfg, ocfg]:
+    for cfg in [DCFG, MCFG, OCFG]:
         print(cfg)
         for k, v in cfg.__dict__.items():
             print(f"    {k}:  {v}")
@@ -254,7 +254,7 @@ def change_config(
 # --------------------
 
 # data config
-class dcfg: 
+class DCFG: 
     input_path = Path('/content/gdrive/MyDrive/SideProject/YuShanCompetition/train')
     is_gpu_used = True # use GPU or not
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -267,7 +267,7 @@ class dcfg:
     expected_num_per_class = 100
 
 #model config
-class mcfg: 
+class MCFG: 
     # model name / folder name
     model_type = 'effb0'       ### 請修改 eg res18 / effb0 / gray effb0
     other_settings = 'train directly on original data with no second data source, using dali'### 請修改
@@ -291,7 +291,7 @@ class mcfg:
     model_folder_path = root_model_folder / model_type / version
 
 # optimizer configure
-class ocfg:
+class OCFG:
     optim_name = 'Adam'         ### 請修改
     lr = 1e-3                   ### 請修改    
     has_differ_lr = False         ### 請修改
@@ -301,12 +301,12 @@ class ocfg:
     
     has_scheduler = False
     schdlr_name = 'OneCycleLR' if has_scheduler else None
-    total_steps = (mcfg.max_epochs)*(dcfg.class_num*dcfg.expected_num_per_class//dcfg.batch_size+1) if has_scheduler else None
+    total_steps = (MCFG.max_epochs)*(DCFG.class_num*DCFG.expected_num_per_class//DCFG.batch_size+1) if has_scheduler else None
     max_lr = [lr*10 for lr in lr_group] if has_scheduler else None
 
 
 # show some information
-config = load_config(mcfg.model_folder_path)
-print('\nModel Detail Check:\n - model ckpt path: ', mcfg.ckpt_path, '\n - model folder path: ', mcfg.model_folder_path, '\n - model other_settings: ', mcfg.other_settings)
+config = load_config(MCFG.model_folder_path)
+print('\nModel Detail Check:\n - model ckpt path: ', MCFG.ckpt_path, '\n - model folder path: ', MCFG.model_folder_path, '\n - model other_settings: ', MCFG.other_settings)
 if config:
     print(' - model other_settings before: ', config['other_settings'])

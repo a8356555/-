@@ -46,11 +46,11 @@ def pytorch_profiler(model, criterion, optimizer, datamodule):
         # on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
     ) as profiler:
             # for step, data in enumerate(train_dataloader, 0):
-            for step, data in enumerate(data_module.train_dataloader()):
+            for step, data in enumerate(datamodule.train_dataloader()):
                 print("step:{}".format(step))
                 # inputs, labels = data[0].to(dcfg.device), data[1].to(dcfg.device)
-                inputs, labels = data[0]['data'].to(dcfg.device), data[0]['label'].to(dcfg.device)
-                model = model.to(dcfg.device)
+                inputs, labels = data[0]['data'].to(dcfg.device), data[0]['label'].to(DCFG.device)
+                model = model.to(DCFG.device)
                 outputs = model(inputs)
                 loss = criterion(outputs, labels.long().squeeze(-1))
 

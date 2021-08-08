@@ -6,7 +6,7 @@ from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPoli
 
 from .preprocess import transform_func, second_source_transform_func
 from .utils import ImageReader
-from .config import dcfg
+from .config import DCFG
 from .model import TrainPipeline
 
 class YuShanDataset(Dataset):
@@ -46,10 +46,10 @@ class YushanDataModule(pl.LightningDataModule):
         self.valid = YuShanDataset(valid_input, transform=transform)        
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=dcfg.batch_size, num_workers=dcfg.num_workers, pin_memory=dcfg.is_memory_pinned, shuffle=dcfg.is_shuffle)
+        return DataLoader(self.train, batch_size=DCFG.batch_size, num_workers=DCFG.num_workers, pin_memory=DCFG.is_memory_pinned, shuffle=DCFG.is_shuffle)
         
     def val_dataloader(self):
-        return DataLoader(self.valid, batch_size=dcfg.batch_size, num_workers=dcfg.num_workers, pin_memory=dcfg.is_memory_pinned)        
+        return DataLoader(self.valid, batch_size=DCFG.batch_size, num_workers=DCFG.num_workers, pin_memory=DCFG.is_memory_pinned)        
 
 class daliModule(pl.LightningDataModule):
     def __init__(self, train_input, valid_input):

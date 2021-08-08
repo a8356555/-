@@ -5,7 +5,7 @@ from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
 from torchvision import models
-from .config import mcfg, dcfg, ocfg
+from .config import MCFG, DCFG, OCFG
 from .preprocess import dali_custom_func
 
 from nvidia.dali.pipeline import Pipeline
@@ -72,20 +72,20 @@ class YuShanClassifier(pl.LightningModule):
         self.log('val_epoch_acc', acc)    
 
     def configure_optimizers(self):
-        if ocfg.has_differ_lr:
+        if OCFG.has_differ_lr:
             params_group = self._get_params_group()
             print(params_group)
 
-            optimizer = torch.optim.Adam(params_group, weight_decay=ocfg.weight_decay) if ocfg.optim_name == 'Adam' else \
-                        torch.optim.SGD(params_group, momentum=ocfg.momentum, weight_decay=ocfg.weight_decay)
+            optimizer = torch.optim.Adam(params_group, weight_decay=OCFG.weight_decay) if OCFG.optim_name == 'Adam' else \
+                        torch.optim.SGD(params_group, momentum=OCFG.momentum, weight_decay=OCFG.weight_decay)
 
         else:
-            optimizer = torch.optim.Adam(self.model.parameters(), lr=ocfg.lr, weight_decay=ocfg.weight_decay) if ocfg.optim_name == 'Adam' else \
-                        torch.optim.SGD(self.model.parameters(), lr=ocfg.lr, momentum=ocfg.momentum, weight_decay=ocfg.weight_decay)
+            optimizer = torch.optim.Adam(self.model.parameters(), lr=OCFG.lr, weight_decay=OCFG.weight_decay) if OCFG.optim_name == 'Adam' else \
+                        torch.optim.SGD(self.model.parameters(), lr=OCFG.lr, momentum=OCFG.momentum, weight_decay=OCFG.weight_decay)
 
-        if ocfg.has_scheduler:
-            if ocfg.schdlr_name == 'OneCycleLR':
-                scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=ocfg.max_lr, total_steps=ocfg.total_steps)  # 设置学习率下降策略
+        if OCFG.has_scheduler:
+            if OCFG.schdlr_name == 'OneCycleLR':
+                scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=OCFG.max_lr, total_steps=OCFG.total_steps)  # 设置学习率下降策略
 
             return {
                 'optimizer': optimizer,
@@ -107,7 +107,7 @@ class ResNetClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
         num_input_fts = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
+        self.model.fc = nn.Linear(num_input_fts, DCFG.class_num)        
     
     def _get_params_group(self):
         fc_params = list(map(id, self.model.fc.parameters()))
@@ -116,9 +116,9 @@ class ResNetClassifier(YuShanClassifier):
         base_params = filter(lambda p: id(p) not in fc_params + layer4_params,
                             self.model.parameters())
         params_group = [
-                        {'params': base_params, 'lr': ocfg.lr_group[0]},
-                        {'params': self.model.layer4.parameters(), 'lr': ocfg.lr_group[1]},
-                        {'params': self.model.fc.parameters(), 'lr': ocfg.lr_group[2]}
+                        {'params': base_params, 'lr': OCFG.lr_group[0]},
+                        {'params': self.model.layer4.parameters(), 'lr': OCFG.lr_group[1]},
+                        {'params': self.model.fc.parameters(), 'lr': OCFG.lr_group[2]}
         ]                
         return params_group
         
@@ -126,7 +126,7 @@ class EfficientClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
         num_input_fts = self.model._fc.in_features
-        self.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
+        self.model._fc = nn.Linear(num_input_fts, DCFG.class_num)        
     
     def _get_params_group(self):
         fc_params_id = list(map(id, self.model._fc.parameters()))
@@ -136,9 +136,9 @@ class EfficientClassifier(YuShanClassifier):
         tail_params = filter(lambda p: id(p) in  tail_params_id,
                             self.model.parameters())
         params_group = [
-                        {'params': base_params, 'lr': ocfg.lr_group[0]},
-                        {'params': tail_params, 'lr': ocfg.lr_group[1]},
-                        {'params': self.model._fc.parameters(), 'lr': ocfg.lr_group[2]}
+                        {'params': base_params, 'lr': OCFG.lr_group[0]},
+                        {'params': tail_params, 'lr': OCFG.lr_group[1]},
+                        {'params': self.model._fc.parameters(), 'lr': OCFG.lr_group[2]}
         ]                
         return params_group
 
@@ -156,7 +156,7 @@ class GrayResClassifier(YuShanClassifier):
         super().__init__()
         self.model = GrayWrapperModel(self.model)
         num_input_fts = self.model.model.fc.in_features
-        self.model.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
+        self.model.model.fc = nn.Linear(num_input_fts, DCFG.class_num)        
                     
     def _get_params_group(self):
         conv1_params_id = list(map(id, self.model.conv1.parameters())) 
@@ -166,10 +166,10 @@ class GrayResClassifier(YuShanClassifier):
         base_params = filter(lambda p: id(p) not in fc_params_id + layer4_params_id + conv1_params_id,
                             self.model.parameters())
         params_group = [
-                        {'params': base_params, 'lr': ocfg.lr_group[0]},
-                        {'params': self.model.model.layer4.parameters(), 'lr': ocfg.lr_group[1]},
-                        {'params': self.model.model.fc.parameters(), 'lr': ocfg.lr_group[2]},
-                        {'params': self.model.conv1.parameters(), 'lr': ocfg.lr_group[2]}
+                        {'params': base_params, 'lr': OCFG.lr_group[0]},
+                        {'params': self.model.model.layer4.parameters(), 'lr': OCFG.lr_group[1]},
+                        {'params': self.model.model.fc.parameters(), 'lr': OCFG.lr_group[2]},
+                        {'params': self.model.conv1.parameters(), 'lr': OCFG.lr_group[2]}
         ]        
         return params_group 
 
@@ -178,7 +178,7 @@ class GrayEffClassifier(YuShanClassifier):
         super().__init__()        
         self.model = GrayWrapperModel(self.model)    
         num_input_fts = self.model.model._fc.in_features
-        self.model.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
+        self.model.model._fc = nn.Linear(num_input_fts, DCFG.class_num)        
                     
     def _get_params_group(self):
         con1_params_id = list(map(id, self.model.conv1.parameters())) 
@@ -189,10 +189,10 @@ class GrayEffClassifier(YuShanClassifier):
         tail_params = filter(lambda p: id(p) in  tail_params_id,
                             self.model.parameters())
         params_group = [
-                        {'params': base_params, 'lr': ocfg.lr_group[0]},
-                        {'params': tail_params, 'lr': ocfg.lr_group[1]},
-                        {'params': self.model.model._fc.parameters(), 'lr': ocfg.lr_group[2]},
-                        {'params': self.model.conv1.parameters(), 'lr': ocfg.lr_group[2]}
+                        {'params': base_params, 'lr': OCFG.lr_group[0]},
+                        {'params': tail_params, 'lr': OCFG.lr_group[1]},
+                        {'params': self.model.model._fc.parameters(), 'lr': OCFG.lr_group[2]},
+                        {'params': self.model.conv1.parameters(), 'lr': OCFG.lr_group[2]}
         ]        
         
         return params_group 
@@ -224,7 +224,7 @@ class CustomModelClassifier(YuShanClassifier):
 
 class TrainPipeline(Pipeline):
     def __init__(self, image_paths, int_labels, phase='train', device_id=0):        
-        super(TrainPipeline, self).__init__(dcfg.batch_size, dcfg.num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)        
+        super(TrainPipeline, self).__init__(DCFG.batch_size, DCFG.num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)        
         random_shuffle = True if phase == 'train' else False
         self.input = ops.readers.File(files=list(image_paths), labels=list(int_labels), random_shuffle=random_shuffle, name="Reader")
         self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
@@ -240,7 +240,7 @@ class TrainPipeline(Pipeline):
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
-        if 'gary' in mcfg.model_type:
+        if 'gary' in MCFG.model_type:
             output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
         if self.phase == 'train':
             w = fn.random.uniform(range=(224.0, 320.0))
@@ -289,22 +289,22 @@ class DaliEffClassifier(EfficientClassifier):
 
 
 def _get_raw_model():    
-    if '18' in mcfg.model_type:
+    if '18' in MCFG.model_type:
         print('get res18!')
-        raw_model = models.resnet18(pretrained=mcfg.is_pretrained)    
-    elif '34' in mcfg.model_type:
+        raw_model = models.resnet18(pretrained=MCFG.is_pretrained)    
+    elif '34' in MCFG.model_type:
         print('get res34!')
-        raw_model = models.resnet34(pretrained=mcfg.is_pretrained)
-    elif '50' in mcfg.model_type:
+        raw_model = models.resnet34(pretrained=MCFG.is_pretrained)
+    elif '50' in MCFG.model_type:
         print('get res50!')
-        raw_model = models.resnet50(pretrained=mcfg.is_pretrained)
-    elif 'b0' in mcfg.model_type:
+        raw_model = models.resnet50(pretrained=MCFG.is_pretrained)
+    elif 'b0' in MCFG.model_type:
         print('get eff-net-b0!')
         raw_model = EfficientNet.from_pretrained('efficientnet-b0')
-    elif 'b1' in mcfg.model_type:
+    elif 'b1' in MCFG.model_type:
         print('get eff-net-b1!')
         raw_model = EfficientNet.from_pretrained('efficientnet-b1')
-    elif 'b2' in mcfg.model_type:
+    elif 'b2' in MCFG.model_type:
         print('get eff-net-b2!')
         raw_model = EfficientNet.from_pretrained('efficientnet-b2')
     # elif ...
@@ -312,16 +312,16 @@ def _get_raw_model():
 
 def get_model(): 
     #TODO: adding dali   
-    if 'res' in mcfg.model_type:
-        model = ResClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else ResClassifier()
-    elif 'eff' in mcfg.model_type:
-        model = EfficientClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else EfficientClassifier()
-    elif 'res' in mcfg.model_type and 'gray' in mcfg.model_type:
-        model = GrayResClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayResClassifier()
-    elif 'eff' in mcfg.model_type and 'gray' in mcfg.model_type:
-        model = GrayEffClassifier().load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else GrayEffClassifier()
-    elif 'custom' in mcfg.model_type:
-        model = CustomModelClassifier.load_from_checkpoint(mcfg.ckpt_path) if mcfg.is_continued else CustomModelClassifier()
+    if 'res' in MCFG.model_type:
+        model = ResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else ResClassifier()
+    elif 'eff' in MCFG.model_type:
+        model = EfficientClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else EfficientClassifier()
+    elif 'res' in MCFG.model_type and 'gray' in MCFG.model_type:
+        model = GrayResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else GrayResClassifier()
+    elif 'eff' in MCFG.model_type and 'gray' in MCFG.model_type:
+        model = GrayEffClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else GrayEffClassifier()
+    elif 'custom' in MCFG.model_type:
+        model = CustomModelClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else CustomModelClassifier()
     # elif ...
     else:
         raise RuntimeError("invalid model type config")

@@ -4,39 +4,39 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from .model import get_model
-from .config import dcfg, mcfg, ocfg, save_config, change_config
+from .config import DCFG, MCFG, OCFG, save_config, change_config
 
 def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=True):
     if is_for_testing:
         trainer = pl.Trainer(
-            max_epochs=mcfg.max_epochs, 
-            gpus=mcfg.gpus, 
-            precision=mcfg.precision if mcfg.is_apex_used else None,
-            amp_level=mcfg.amp_level if mcfg.is_apex_used else None,        
+            max_epochs=MCFG.max_epochs, 
+            gpus=MCFG.gpus, 
+            precision=MCFG.precision if MCFG.is_apex_used else None,
+            amp_level=MCFG.amp_level if MCFG.is_apex_used else None,        
         )
     else:
-        save_config(folder_path=mcfg.model_folder_path, model=model, is_user_input_needed=is_user_input_needed)
-        logger = TensorBoardLogger(mcfg.model_folder_path)
+        save_config(folder_path=MCFG.model_folder_path, model=model, is_user_input_needed=is_user_input_needed)
+        logger = TensorBoardLogger(MCFG.model_folder_path)
 
 
         checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
-            dirpath=mcfg.model_folder_path / "checkpoints",
+            dirpath=MCFG.model_folder_path / "checkpoints",
             filename='{epoch}',
-            save_top_k = mcfg.save_top_k_models,
-            every_n_val_epochs=mcfg.save_every_n_epoch,
+            save_top_k = MCFG.save_top_k_models,
+            every_n_val_epochs=MCFG.save_every_n_epoch,
         )
 
         trainer = pl.Trainer(
             logger=logger,        
-            max_epochs=mcfg.max_epochs, 
-            gpus=mcfg.gpus, 
-            precision=mcfg.precision if mcfg.is_apex_used else None,
-            amp_level=mcfg.amp_level if mcfg.is_apex_used else None,
-            log_every_n_steps=mcfg.log_every_n_steps, 
-            flush_logs_every_n_steps=mcfg.log_every_n_steps,
+            max_epochs=MCFG.max_epochs, 
+            gpus=MCFG.gpus, 
+            precision=MCFG.precision if MCFG.is_apex_used else None,
+            amp_level=MCFG.amp_level if MCFG.is_apex_used else None,
+            log_every_n_steps=MCFG.log_every_n_steps, 
+            flush_logs_every_n_steps=MCFG.log_every_n_steps,
             callbacks=[checkpoint_callback],
-            resume_from_checkpoint=mcfg.ckpt_path if mcfg.is_continued else None
+            resume_from_checkpoint=MCFG.ckpt_path if MCFG.is_continued else None
         )
 
     trainer.fit(model, datamodule=datamodule)
@@ -58,28 +58,28 @@ def multi_train(config_dicts, model_classes, datamodules):
 def train(args):
     model = get_model()        
     datamodule = create_datamodule(args)    
-    logger = TensorBoardLogger(mcfg.logger_path, name=mcfg.model_type, version=mcfg.version)
+    logger = TensorBoardLogger(MCFG.logger_path, name=MCFG.model_type, version=MCFG.version)
 
-    save_config(folder_path=mcfg.model_folder_path, model=model)
+    save_config(folder_path=MCFG.model_folder_path, model=model)
     
     checkpoint_callback = ModelCheckpoint(
-        monitor=mcfg.monitor,
-        dirpath=os.path.join(mcfg.logger_path, mcfg.model_type, mcfg.version, mcfg.model_ckpt_dirname),
+        monitor=MCFG.monitor,
+        dirpath=os.path.join(MCFG.logger_path, MCFG.model_type, MCFG.version, MCFG.model_ckpt_dirname),
         filename='{epoch}',
-        save_top_k = mcfg.save_top_k_models,
-        every_n_val_epochs=mcfg.save_every_n_epoch,
+        save_top_k = MCFG.save_top_k_models,
+        every_n_val_epochs=MCFG.save_every_n_epoch,
     )
 
     trainer = pl.Trainer(
         logger=logger, 
-        max_epochs=mcfg.max_epochs, 
-        gpus=mcfg.gpus, 
-        precision=mcfg.precision if mcfg.is_apex_used else None,
-        amp_level=mcfg.amp_level if mcfg.is_apex_used else None,
-        log_every_n_steps=mcfg.log_every_n_steps, 
-        flush_logs_every_n_steps=mcfg.log_every_n_steps,
+        max_epochs=MCFG.max_epochs, 
+        gpus=MCFG.gpus, 
+        precision=MCFG.precision if MCFG.is_apex_used else None,
+        amp_level=MCFG.amp_level if MCFG.is_apex_used else None,
+        log_every_n_steps=MCFG.log_every_n_steps, 
+        flush_logs_every_n_steps=MCFG.log_every_n_steps,
         callbacks=[checkpoint_callback],
-        resume_from_checkpoint=mcfg.ckpt_path if mcfg.is_continued else None
+        resume_from_checkpoint=MCFG.ckpt_path if MCFG.is_continued else None
     )
 
     trainer.fit(model, datamodule)

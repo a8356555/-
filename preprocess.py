@@ -5,10 +5,10 @@ from albumentations.pytorch.transforms import ToTensorV2
 import albumentations.augmentations.transforms as transforms
 import cupy
 
-from .config import dcfg, mcfg
+from .config import DCFG, MCFG
 
 def _get_copyMakeBorder_flag():
-    if 'replicate' in dcfg.transform_approach:
+    if 'replicate' in DCFG.transform_approach:
         return cv2.BORDER_REPLICATE
     else:
         return cv2.BORDER_WRAP
@@ -22,7 +22,8 @@ def _custom_opencv(image):
     else:
         dw_half = int(0.1*w/2)
         dh_half = int((w+2*dw_half-h)/2)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    if 'gray' in MCFG.model_type:
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
     flag = _get_copyMakeBorder_flag()
     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
     return image
@@ -159,8 +160,8 @@ def dali_custom_func(image):
     bg = cupy.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=cupy.uint8)
     bg[dh_half:dh_half+h, dw_half:dw_half+w, :] = image
 
-    if 'replicate' in dcfg.transform_approach:
+    if 'replicate' in DCFG.transform_approach:
         func = _copymakeborder_replicate
-    elif 'wrap' in dcfg.transform_approach:
+    elif 'wrap' in DCFG.transform_approach:
         func = _copymakeborder_wrap
     return func(h, w, dh_half, dw_half, bg, image)
