@@ -1,9 +1,10 @@
 import os
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from .model import get_model
-from .config import dcfg, mcfg, ocfg
-from .utils import save_config
+from .config import dcfg, mcfg, ocfg, save_config
 
 def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=True):
     if is_for_testing:
