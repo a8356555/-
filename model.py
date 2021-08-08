@@ -254,17 +254,17 @@ class TrainPipeline(Pipeline):
         output = output/255.0
         return (output, self.labels)
 
-# class LightningWrapper(DALIClassificationIterator):
-#     def __init__(self, *kargs, **kvargs):
-#         super().__init__(*kargs, **kvargs)
-#         self.__code__ = None
-#     def __next__(self):
-#         out = super().__next__()
-#         # DDP is used so only one pipeline per process
-#         # also we need to transform dict returned by DALIClassificationIterator to iterable
-#         # and squeeze the lables
-#         out = out[0]
-#         return (out[k] if k != "label" else torch.squeeze(out[k]) for k in self.output_map)
+class LightningWrapper(DALIClassificationIterator):
+    def __init__(self, *kargs, **kvargs):
+        super().__init__(*kargs, **kvargs)
+        self.__code__ = None
+    def __next__(self):
+        out = super().__next__()
+        # DDP is used so only one pipeline per process
+        # also we need to transform dict returned by DALIClassificationIterator to iterable
+        # and squeeze the lables
+        out = out[0]
+        return (out[k] if k != "label" else torch.squeeze(out[k]) for k in self.output_map)
 
 class DaliEffClassifier(EfficientClassifier):    
     def __init__(self):
@@ -288,10 +288,11 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
     def __init__(self):
         super().__init__()
 
-    def handle_teacher_label_logits(self, label_logits):    
+    def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
 
     def cross_entropy_loss(self, logits, target_prob):
+        target_prob = _handle_teacher_label_logits(target_prob)
         return torch.sum(target_prob*-F.log_softmax(logits))
 
 

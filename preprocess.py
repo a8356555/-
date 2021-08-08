@@ -50,12 +50,16 @@ def _second_source_custom_opencv(img):
     n = np.random.randint(30, 45)
     img = img[n:300-n, n:300-n]    
     p = np.random.uniform(0, 1)
+    
+    # 70% 在左右使用 wrap 在上下使用白色
     if p > 0.3:
         img = cv2.copyMakeBorder(img, 100, 100, 0, 0, cv2.BORDER_CONSTANT, value=[255, 255, 255])
         img = cv2.copyMakeBorder(img, 0, 0, 100, 100, cv2.BORDER_WRAP)
+    # 20% 在上下使用 wrap 在左右使用白色
     elif p > 0.1:
         img = cv2.copyMakeBorder(img, 0, 0, 100, 100, cv2.BORDER_CONSTANT, value=[255, 255, 255])
         img = cv2.copyMakeBorder(img, 100, 100, 0, 0, cv2.BORDER_WRAP)
+    # 10% 全部使用 wrap
     else:
         img = cv2.copyMakeBorder(img, 100, 100, 100, 100, cv2.BORDER_WRAP)    
     
@@ -73,14 +77,17 @@ def _second_source_custom_opencv(img):
     p2 = np.random.uniform(0, 1)
     delta_x2, delta_y2 = (-400, 0) if p>0.5 else (0, -400)
 
+    # 篩出有字的位置加上隨機噪音
     word_cond = img<100
-    word_shape = img[word_cond].shape
+    word_shape = img[word_cond].shape    
     img[word_cond] = img[word_cond] + np.random.normal(0, 1, size=word_shape)
 
+    # 篩出背景加上加上噪音
     bg_cond = img>200
     bg_shape = img[bg_cond].shape
     img[bg_cond] = img[bg_cond] - np.random.randint(low=0, high=50, size=bg_shape)
     
+    # 加上擬原始數據線條
     if p>0.4:
         img = cv2.line(img, (x, y), (x+delta_x, y+delta_y), (r, g, b), w)
     if p2>0.4:

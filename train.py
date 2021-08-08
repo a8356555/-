@@ -45,8 +45,8 @@ def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=T
 def multi_train(config_dicts, model_classes, datamodules):
     """
     Arguments:
-        configs: a list of config dict, eg. [{'batch_size': 128}, {'batch_size': 256}]
-        model_classes: a list of model class, eg. [DaliClassifier, YushanClassifier]
+        configs: list, a list of config dict, eg. [{'batch_size': 128}, {'batch_size': 256}]
+        model_classes: list, a list of model class, eg. [DaliClassifier, YushanClassifier]
     """
     assert len(config_dicts) == len(datamodules) == len(model_classes), "unmatched input numbers"    
     for config_dict, Model, datamodule in zip(config_dicts, model_classes, datamodules):

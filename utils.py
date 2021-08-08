@@ -32,7 +32,6 @@ class ImageReader:
 
     @classmethod
     def show_image_and_label(cls, img_path, label, is_path_showed=False):
-        """"""
         print(label,'\n')        
         if is_path_showed:
             print(img_path, '\n')            
@@ -196,9 +195,9 @@ class FileHandler:
     @classmethod
     def get_paths_and_int_labels(cls, train_type='all_train', train_txt_path=None, valid_txt_path=None):
         """
-        Keyword Argument:
-            train_type -- 'all_train' or 'cleaned' (default 'all_train')
-            train_txt_path -- /path/to/your/train/txt , if this parameter is used then train_type will be ignored
+        Argument:
+            train_type: str, 'all_train' or 'cleaned' (default 'all_train')
+            train_txt_path: str, "/path/to/your/train/txt" , if this parameter is used then train_type will be ignored
         """        
         if train_txt_path is None:
             if train_type == 'all_train':

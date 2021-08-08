@@ -129,12 +129,6 @@ def _get_ckpt_path(folder_path):
     return ckpt_path
 
 def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_type, today):
-    """
-    3 phase
-        1. enter model_type
-        2. enter model version (date)
-        3. enter model checkpoint
-    """
     import json
     if is_continued:        
         target_model_type_folder = root_model_folder / model_type
@@ -202,67 +196,48 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
 
     return ckpt_path, model_type, version
 
-def change_config(
-    batch_size=128, 
-    max_epochs=30,
-    gpus=1,
-    num_workers=4,
-    transform_approach='replicate',
-    other_settings='Write Something', 
-    model_type=None,
-    version_num=None,
-    **kwargs
-    ):
+def change_config(**kwargs):
     """
-    kwargs:
-    optimizer related:
-        optim_name = 'Adam'
-        lr = 1e-3
-        has_differ_lr = False
-        lr_group = [lr/100, lr/10, lr] if has_differ_lr else lr     ### 請修改
-        weight_decay = 0                                           ### 請修改
-        momentum = 0.9
-    #TODO
-    noisy_student related:    
-        student_iter = 1
-        temperature = 1
-        dropout_rate = 0.3
-        drop_connect_rate = 0.3
-        teacher_softmax_temp = 1
+    Arguments:
+    (DCFG related)
+        batch_size: int,
+        num_workers: int,
+        transform_approach: str, eg. 'replicate'
+    
+    (MCFG related)    
+        model_type: str, eg. 'noisy_student'
+        version_num: str, eg. 'v1'
+        max_epochs: int,
+        gpus: int,
+        other_settings: str, model description
+    
+    (OCFG related)    
+        optim_name: str, eg. 'Adam'
+        lr: float, eg. 1e-3
+        has_differ_lr: bool,
+        lr_group: list, eg. [1e-5, 1e-4, 1e-3]
+        weight_decay: float,
+        momentum: float, 
+    
+    (NS related)
+        student_iter: int,
+        temperature: int, (default 1) 
+        dropout_rate: float,
+        drop_connect_rate: float,
+        teacher_softmax_temp: int,
     """
-    MCFG.batch_size = batch_size  
-    MCFG.max_epochs = max_epochs
-    MCFG.gpus = gpus
-    DCFG.num_workers=num_workers
-    if other_settings != 'Write Something':
-        assert isinstance(other_settings, str), 'invalid input data type, need to be string'
-        MCFG.other_settings = other_settings            
-    if transform_approach != 'replicate':
-        DCFG.transform_approach = transform_approach    
-    if model_type or version_num:
-        if model_type:
-            MCFG.model_type = model_type
-        if version_num:
-            MCFG.version = f"{MCFG.today}.{version_num}"         
-
+    for key, value in kwargs.items():
+        if key == 'version_num':
+            MCFG.version = f"{MCFG.today}.{value}"
+        for CFG in [DCFG, MCFG, OCFG, NS]:
+            if hasattr(CFG, key):
+                setattr(CFG, key, value)
         model_folder_path = MCFG.root_model_folder / MCFG.model_type / MCFG.version        
         _handle_not_exist_folder(model_folder_path)
-        MCFG.model_folder_path = model_folder_path
-    if 'optim_name' in kwargs.keys():
-        OCFG.optim_name = kwargs['optim_name']
-    if 'lr' in kwargs.keys():
-        OCFG.lr = kwargs['lr']
-    if 'has_differ_lr' in kwargs.keys():
-        OCFG.has_differ_lr = kwargs['has_differ_lr']
-    if 'lr_group' in kwargs.keys():
-        OCFG.lr_group = kwargs['lr_group']
-    if 'weight_decay' in kwargs.keys():
-        OCFG.weight_decay = kwargs['weight_decay']
-    if 'momentum' in kwargs.keys():
-        OCFG.momentum = kwargs['momentum']
+        MCFG.model_folder_path = model_folder_path            
 
-    for cfg in [DCFG, MCFG, OCFG]:
-        print(cfg)
+    for cfg in [DCFG, MCFG, OCFG, NS]:
+        print(cfg.__module__)
         for k, v in cfg.__dict__.items():
             print(f"    {k}:  {v}")
 
