@@ -107,9 +107,9 @@ def print_existing_model_version_and_info(model_folder):
         ckpt_files = ', '.join([ckpt_path.name for ckpt_path in ver_folder_path.glob("**/*.ckpt")])
         metric_txt_path = ver_folder_path/"metrics.txt"        
         lastest_metrics = MetricHandler.get_lastest_metrics_from_txt(metric_txt_path)
-        print_dict["ver:    " + ver_folder_path.name] = (other_setting, ckpt_files, lastest_metrics)
+        print_dict[ver_folder_path.name] = (other_setting, ckpt_files, lastest_metrics)
 
-    print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=4))
+    print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
 
 def _handle_not_exist_folder(folder_path):
