@@ -265,7 +265,7 @@ class MCFG:
     # model name / folder name
     model_type = 'effb0'       ### 請修改 eg res18 / effb0 / gray effb0
     other_settings = 'train directly on original data with no second data source, using dali'### 請修改
-    is_continued = False         ### 請修改
+    is_continued = True         ### 請修改
     
     # model training setting
     is_pretrained = True        ### 請修改

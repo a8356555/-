@@ -289,11 +289,15 @@ class FileHandler:
         clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
-
     @classmethod
     def _make_noisy_student_training_data_once():
-        pass
-        
+        cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
+        cleaned_image_paths, _ = cls.read_path_and_label_from_txt(train_txt_path)
+        df_all, _, _ = cls.load_target_dfs()
+        df_noised = df_all[~df_all.isin(cleaned_balanced_images)].groupby('label').sample(100, replace=True)
+        noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
+        noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
+        cls.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
 
 word_classes = FileHandler.get_word_classes_dict()
 

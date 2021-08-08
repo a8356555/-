@@ -296,6 +296,8 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         return torch.sum(target_prob*-F.log_softmax(logits))
 
 
+def load_target_ckpt_model(model_type, version, )
+    target_model_version_folder = MCFG.
 
 def _get_raw_model():    
     if '18' in MCFG.model_type:
