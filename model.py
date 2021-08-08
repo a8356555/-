@@ -5,7 +5,7 @@ from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
 from torchvision import models
-from .config import MCFG, DCFG, OCFG
+from .config import MCFG, DCFG, OCFG, NS
 from .preprocess import dali_custom_func
 
 from nvidia.dali.pipeline import Pipeline
@@ -284,7 +284,15 @@ class DaliEffClassifier(EfficientClassifier):
         x, y = batch[0]['data'], batch[0]['label'].squeeze(-1)
         return x.float(), y.long()  
 
+class NoisyStudentDaliEffClassifier(DaliEffClassifier):
+    def __init__(self):
+        super().__init__()
 
+    def handle_teacher_label_logits(self, label_logits):    
+        return F.softmax(label_logits / NS.teacher_softmax_temp)
+
+    def cross_entropy_loss(self, logits, target_prob):
+        return torch.sum(target_prob*-F.log_softmax(logits))
 
 
 
@@ -307,6 +315,8 @@ def _get_raw_model():
     elif 'b2' in MCFG.model_type:
         print('get eff-net-b2!')
         raw_model = EfficientNet.from_pretrained('efficientnet-b2')
+    elif 'noisy_student' in MCFG.model_type:
+        model = EfficientNet.from_pretrained(f"efficientnet-b{NS.student_iter}", dropout_rate=NS.dropout_rate, drop_connect_rate=NS.drop_connect_rate)
     # elif ...
     return raw_model
 
@@ -322,6 +332,8 @@ def get_model():
         model = GrayEffClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else GrayEffClassifier()
     elif 'custom' in MCFG.model_type:
         model = CustomModelClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else CustomModelClassifier()
+    elif 'noisy_student' in MCFG.model_type:
+        model = 
     # elif ...
     else:
         raise RuntimeError("invalid model type config")

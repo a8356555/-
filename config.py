@@ -10,6 +10,7 @@ Please Jump to Bottom to Modify Config
     1) data config: DCFG
     2) model config: MCFG
     3) optimizer config: OCFG
+    4) noisy student config: NS
 """
 
 
@@ -17,11 +18,7 @@ Please Jump to Bottom to Modify Config
 # ---------------------
 # config function
 # ---------------------
-
-def save_config(folder_path=Path('/content'), model=None, is_user_input_needed=True):  
-    import json  
-    _handle_not_exist_folder(folder_path)
-    
+def _make_config():
     output_dict = {
         'date': str(MCFG.today,),
         'batch_size': DCFG.batch_size,
@@ -62,6 +59,21 @@ def save_config(folder_path=Path('/content'), model=None, is_user_input_needed=T
         'max_epochs': MCFG.max_epochs,
         'other_settings': MCFG.other_settings        
     }
+    # handle noisy label config
+    if 'noisy_student' in MCFG.model_type:
+        output_dict['noisy_student'] = {
+            'student_iter': NS.student_iter,
+            'temperature': NS.temperature,
+            'dropout_rate': NS.dropout_rate,
+            'drop_connect_rate': NS.drop_connect_rate,
+            'teacher_softmax_temp': NS.teacher_softmax_temp
+        }
+    return output_dict
+
+def save_config(folder_path=Path('/content'), model=None, is_user_input_needed=True):  
+    import json  
+    _handle_not_exist_folder(folder_path)
+    output_dict = _make_config()
     print(json.dumps(output_dict, indent=4))
     target_path = folder_path / 'config.json'
     check = input(f'confirm saving {target_path}? (yes/y/n/no)') if is_user_input_needed else 'y'
@@ -203,12 +215,20 @@ def change_config(
     ):
     """
     kwargs:
+    optimizer related:
         optim_name = 'Adam'
         lr = 1e-3
         has_differ_lr = False
         lr_group = [lr/100, lr/10, lr] if has_differ_lr else lr     ### 請修改
         weight_decay = 0                                           ### 請修改
         momentum = 0.9
+    #TODO
+    noisy_student related:    
+        student_iter = 1
+        temperature = 1
+        dropout_rate = 0.3
+        drop_connect_rate = 0.3
+        teacher_softmax_temp = 1
     """
     MCFG.batch_size = batch_size  
     MCFG.max_epochs = max_epochs
@@ -246,15 +266,13 @@ def change_config(
         for k, v in cfg.__dict__.items():
             print(f"    {k}:  {v}")
 
-
-
-
 # --------------------
 #  Modifying Config
 # --------------------
 
 # data config
 class DCFG: 
+    """Config for Data"""
     input_path = Path('/content/gdrive/MyDrive/SideProject/YuShanCompetition/train')
     is_gpu_used = True # use GPU or not
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -268,6 +286,7 @@ class DCFG:
 
 #model config
 class MCFG: 
+    """Config for Model"""
     # model name / folder name
     model_type = 'effb0'       ### 請修改 eg res18 / effb0 / gray effb0
     other_settings = 'train directly on original data with no second data source, using dali'### 請修改
@@ -292,6 +311,7 @@ class MCFG:
 
 # optimizer configure
 class OCFG:
+    """Config for Optimizer"""
     optim_name = 'Adam'         ### 請修改
     lr = 1e-3                   ### 請修改    
     has_differ_lr = False         ### 請修改
@@ -304,6 +324,13 @@ class OCFG:
     total_steps = (MCFG.max_epochs)*(DCFG.class_num*DCFG.expected_num_per_class//DCFG.batch_size+1) if has_scheduler else None
     max_lr = [lr*10 for lr in lr_group] if has_scheduler else None
 
+class NS:
+    """Config for Noisy Student"""
+    student_iter = 1
+    temperature = 1 # 2 / 3 / 4 /5 / 6 
+    dropout_rate = 0.3
+    drop_connect_rate = 0.3
+    teacher_softmax_temp = 1
 
 # show some information
 config = load_config(MCFG.model_folder_path)
