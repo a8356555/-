@@ -13,7 +13,8 @@
         pip install pytorch-lightning efficientnet_pytorch cupy-cuda110
         pip install --upgrade --force-reinstall --no-deps albumentations        
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110        
-
+        pip install pytorch-lightning
+        pip install cupy-cuda110 "not tested"
 
 ### 1) Please Modify data/model/optimizer config in the bottom if config.py First
 1. dcfg: data config

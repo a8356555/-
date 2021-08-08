@@ -231,15 +231,15 @@ def change_config(
     if 'optim_name' in kwargs.keys():
         ocfg.optim_name = kwargs['optim_name']
     if 'lr' in kwargs.keys():
-        ocfg.optim_name = kwargs['lr']
+        ocfg.lr = kwargs['lr']
     if 'has_differ_lr' in kwargs.keys():
-        ocfg.optim_name = kwargs['has_differ_lr']
+        ocfg.has_differ_lr = kwargs['has_differ_lr']
     if 'lr_group' in kwargs.keys():
-        ocfg.optim_name = kwargs['lr_group']
+        ocfg.lr_group = kwargs['lr_group']
     if 'weight_decay' in kwargs.keys():
-        ocfg.optim_name = kwargs['weight_decay']
+        ocfg.weight_decay = kwargs['weight_decay']
     if 'momentum' in kwargs.keys():
-        ocfg.optim_name = kwargs['momentum']
+        ocfg.momentum = kwargs['momentum']
 
     for cfg in [dcfg, mcfg, ocfg]:
         print(cfg)
