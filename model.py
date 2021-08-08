@@ -106,7 +106,6 @@ class YuShanClassifier(pl.LightningModule):
 class ResNetClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
-        self.model = _get_raw_model()
         num_input_fts = self.model.fc.in_features
         self.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
     
@@ -126,7 +125,7 @@ class ResNetClassifier(YuShanClassifier):
 class EfficientClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
-        self.model = _get_raw_model()
+        print(self.model)
         num_input_fts = self.model._fc.in_features
         self.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
     
@@ -144,11 +143,11 @@ class EfficientClassifier(YuShanClassifier):
         ]                
         return params_group
 
-class GrayModel(nn.Module):
-    def __init__(self):
+class GrayWrapperModel(nn.Module):
+    def __init__(self, raw_model):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 3, 3, 1, padding=1)
-        self.model = _get_raw_model()
+        self.model = raw_model
     def forward(self, x):
         x = self.conv1(x)        
         return self.model(x)
@@ -156,7 +155,7 @@ class GrayModel(nn.Module):
 class GrayResClassifier(YuShanClassifier):
     def __init__(self):
         super().__init__()
-        self.model = GrayModel()
+        self.model = GrayWrapperModel(self.model)
         num_input_fts = self.model.model.fc.in_features
         self.model.model.fc = nn.Linear(num_input_fts, dcfg.class_num)        
                     
@@ -177,8 +176,8 @@ class GrayResClassifier(YuShanClassifier):
 
 class GrayEffClassifier(YuShanClassifier):
     def __init__(self):
-        super().__init__()
-        self.model = GrayModel()
+        super().__init__()        
+        self.model = GrayWrapperModel(self.model)    
         num_input_fts = self.model.model._fc.in_features
         self.model.model._fc = nn.Linear(num_input_fts, dcfg.class_num)        
                     
@@ -208,6 +207,7 @@ class CustomModel(nn.Module):
 
 class CustomModelClassifier(YuShanClassifier):
     def __init__(self):
+        super.__init__()
         self.model = CustomModel()
         pass
         # set custom model architecture
@@ -270,7 +270,6 @@ class TrainPipeline(Pipeline):
 class DaliEffClassifier(EfficientClassifier):    
     def __init__(self):
         super().__init__()
-        self._save_parameters = {}
 
     def validation_epoch_end(self, outputs):
         epoch_corrects = sum([x['running_corrects'] for x in outputs])

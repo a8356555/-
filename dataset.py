@@ -81,5 +81,5 @@ def create_datamodule(args):
     valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") if is_first_time else None
     train_input = {'path': train_image_paths, 'int_label': train_int_labels, 'image': None}
     valid_input = {'path': valid_image_paths, 'int_label': valid_int_labels, 'image': valid_images}
-    data_module = YushanDataModule(train_input, valid_input, transform=transform_func)
+    datamodule = YushanDataModule(train_input, valid_input, transform=transform_func)
     return datamodule

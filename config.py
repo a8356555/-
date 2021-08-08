@@ -18,7 +18,7 @@ Please Jump to Bottom to Modify Config
 # config function
 # ---------------------
 
-def save_config(folder_path=Path('/content'), model=None):  
+def save_config(folder_path=Path('/content'), model=None, is_user_input_needed=True):  
     import json  
     _handle_not_exist_folder(folder_path)
     
@@ -60,11 +60,11 @@ def save_config(folder_path=Path('/content'), model=None):
             'precision': mcfg.precision
         },
         'max_epochs': mcfg.max_epochs,
-        'other_settings': mcfg.description        
+        'other_settings': mcfg.other_settings        
     }
     print(json.dumps(output_dict, indent=4))
     target_path = folder_path / 'config.json'
-    check = input(f'confirm saving {target_path}? (yes/y/n/no)')
+    check = input(f'confirm saving {target_path}? (yes/y/n/no)') if is_user_input_needed else 'y'
     if check in ['y', 'yes']:
         print('start saving')        
         with open(target_path, 'w') as out_file:
@@ -136,12 +136,12 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
         # Print out existing version folder name and its setting
         existing_ver_paths = [x for x in folder.glob("*v[0-9]*")]
         config = [load_config(x) for x in existing_ver_paths]
-        description = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
+        other_settings = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
         print_dict = {x.name: (des + ", Having below CKPT files~" + 
                                 ', '.join([x.name for x in x.glob("**/*.ckpt")])
                                 if x.glob("*config.json") 
                                 else "There's still no config.json") 
-                        for x, des in zip(existing_ver_paths, description)}
+                        for x, des in zip(existing_ver_paths, other_settings)}
         print('existing version: \n', json.dumps(print_dict, sort_keys=True, indent=4))
         
         # Choose a specific version and loop until the version input is valid
@@ -168,12 +168,12 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
         # Print out existing version folder name and its setting
         existing_ver_paths = [x for x in folder.glob("*v[0-9]*")]
         config = [load_config(x) for x in existing_ver_paths]
-        description = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
+        other_settings = [cfg['other_settings'] if cfg is not None else "No Config" for cfg in config]
         print_dict = {x.name: (des + ", Having below CKPT files~" + 
                                 ', '.join([x.name for x in x.glob("**/*.ckpt")])
                                 if x.glob("*config.json") 
                                 else "There's still no config.json") 
-                        for x, des in zip(existing_ver_paths, description)}
+                        for x, des in zip(existing_ver_paths, other_settings)}
         print('existing version: \n', json.dumps(print_dict, sort_keys=True, indent=4))
 
         # Enter a new version, if the entered version is existing, then loop again
@@ -190,7 +190,61 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
 
     return ckpt_path, model_type, version
 
+def change_config(
+    batch_size=128, 
+    max_epochs=30,
+    gpus=1,
+    num_workers=4,
+    transform_approach='replicate',
+    other_settings='Write Something', 
+    model_type=None,
+    version_num=None,
+    **kwargs
+    ):
+    """
+    kwargs:
+        optim_name = 'Adam'
+        lr = 1e-3
+        has_differ_lr = False
+        lr_group = [lr/100, lr/10, lr] if has_differ_lr else lr     ### 請修改
+        weight_decay = 0                                           ### 請修改
+        momentum = 0.9
+    """
+    mcfg.batch_size = batch_size  
+    mcfg.max_epochs = max_epochs
+    mcfg.gpus = gpus
+    dcfg.num_workers=num_workers
+    if other_settings != 'Write Something':
+        assert isinstance(other_settings, str), 'invalid input data type, need to be string'
+        mcfg.other_settings = other_settings            
+    if transform_approach != 'replicate':
+        dcfg.transform_approach = transform_approach    
+    if model_type or version_num:
+        if model_type:
+            mcfg.model_type = model_type
+        if version_num:
+            mcfg.version = f"{mcfg.today}.{version_num}"         
 
+        model_folder_path = mcfg.root_model_folder / mcfg.model_type / mcfg.version        
+        _handle_not_exist_folder(model_folder_path)
+    
+    if 'optim_name' in kwargs.keys():
+        ocfg.optim_name = kwargs['optim_name']
+    if 'lr' in kwargs.keys():
+        ocfg.optim_name = kwargs['lr']
+    if 'has_differ_lr' in kwargs.keys():
+        ocfg.optim_name = kwargs['has_differ_lr']
+    if 'lr_group' in kwargs.keys():
+        ocfg.optim_name = kwargs['lr_group']
+    if 'weight_decay' in kwargs.keys():
+        ocfg.optim_name = kwargs['weight_decay']
+    if 'momentum' in kwargs.keys():
+        ocfg.optim_name = kwargs['momentum']
+
+    for cfg in [dcfg, mcfg, ocfg]:
+        print(cfg)
+        for k, v in cfg.__dict__.items():
+            print(f"    {k}:  {v}")
 
 
 
@@ -216,7 +270,7 @@ class dcfg:
 class mcfg: 
     # model name / folder name
     model_type = 'effb0'       ### 請修改 eg res18 / effb0 / gray effb0
-    description = 'train directly on original data with no second data source, using dali'### 請修改
+    other_settings = 'train directly on original data with no second data source, using dali'### 請修改
     is_continued = False         ### 請修改
     
     # model training setting
@@ -253,6 +307,6 @@ class ocfg:
 
 # show some information
 config = load_config(mcfg.model_folder_path)
-print('\nModel Detail Check:\n - model ckpt path: ', mcfg.ckpt_path, '\n - model folder path: ', mcfg.model_folder_path, '\n - model description: ', mcfg.description)
+print('\nModel Detail Check:\n - model ckpt path: ', mcfg.ckpt_path, '\n - model folder path: ', mcfg.model_folder_path, '\n - model other_settings: ', mcfg.other_settings)
 if config:
-    print(' - model description before: ', config['other_settings'])
+    print(' - model other_settings before: ', config['other_settings'])
