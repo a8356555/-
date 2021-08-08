@@ -179,14 +179,14 @@ def _handle_ckpt_path_and_model_version(is_continued, root_model_folder, model_t
         # Enter a new version, if the entered version is existing, then loop again
         version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
         version = f'{today}.{version_num}'
-        folder = folder / version
-        while folder.exists():
+        version_folder = folder / version
+        while version_folder.exists():
             version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
             version = f'{today}.{version_num}'
-            folder = folder / version
+            version_folder = folder / version
         
         ckpt_path = None
-        _handle_not_exist_folder(folder / version)
+        _handle_not_exist_folder(version_folder)
 
     return ckpt_path, model_type, version
 
@@ -295,7 +295,7 @@ class ocfg:
     optim_name = 'Adam'         ### 請修改
     lr = 1e-3                   ### 請修改    
     has_differ_lr = False         ### 請修改
-    lr_group = [lr/100, lr/10, lr] if has_differ_lr else lr     ### 請修改
+    lr_group = [lr/100, lr/10, lr]     ### 請修改
     weight_decay = 0                                           ### 請修改
     momentum = 0.9 if optim_name == 'SGD' else 0                    ### 請修改
     
