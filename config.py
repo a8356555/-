@@ -3,8 +3,7 @@ from datetime import date
 import torch
 import os
 from pathlib import Path
-import json
-from .utils import MetricHandler, ModelFileHandler, ConfigHandler
+from .utils import MetricsHandler, ModelFileHandler, ConfigHandler
 
 """
 Please Jump to Bottom to Modify Config

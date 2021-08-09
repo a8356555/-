@@ -59,29 +59,5 @@ def multi_train(config_dicts, model_classes, datamodules):
 def train(args):
     model = get_model()        
     datamodule = create_datamodule(args)    
-    logger = TensorBoardLogger(MCFG.logger_path, name=MCFG.model_type, version=MCFG.version)
-
-    ConfigHandler.save_config(CFGs, folder=MCFG.target_version_folder, model=model)
-            
-    checkpoint_callback = ModelCheckpoint(
-        monitor=MCFG.monitor,
-        dirpath=os.path.join(MCFG.logger_path, MCFG.model_type, MCFG.version, MCFG.model_ckpt_dirname),
-        filename='{epoch}',
-        save_top_k = MCFG.save_top_k_models,
-        every_n_val_epochs=MCFG.save_every_n_epoch,
-    )
-
-    trainer = pl.Trainer(
-        logger=logger, 
-        max_epochs=MCFG.max_epochs, 
-        gpus=MCFG.gpus, 
-        precision=MCFG.precision if MCFG.is_apex_used else None,
-        amp_level=MCFG.amp_level if MCFG.is_apex_used else None,
-        log_every_n_steps=MCFG.log_every_n_steps, 
-        flush_logs_every_n_steps=MCFG.log_every_n_steps,
-        callbacks=[checkpoint_callback],
-        resume_from_checkpoint=MCFG.ckpt_path if MCFG.is_continued else None
-    )
-
-    trainer.fit(model, datamodule)
+    trainer, model = single_train(model, datamodule)    
     return model, trainer, datamodule

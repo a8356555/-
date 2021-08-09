@@ -13,6 +13,7 @@ import json
 # please see #TODO
 
 class ImageReader:
+    """A class of methods involving in image reading and showing"""
     @classmethod
     def read_image_pil(cls, path):
         img = Image.open(path)
@@ -89,13 +90,16 @@ class ImageReader:
 
     @classmethod
     def lazy_read_image_mp(cls, file_paths):
+        """Using multiprocessing to speed up image reading, but just cache into memery without returning images"""            
         cls._mp_for_images(file_paths)
 
     @classmethod
     def get_image_data_mp(cls, file_paths, target="shape"):
+        """using multiprocessing to speed up image reading, and returning images or shape of images"""
         return cls._mp_for_images(file_paths, target)
 
 class FolderHandler:
+    """A class of methods involving in folder copying, deleting and creating the desired folder if it is not existing"""
     @classmethod
     def copyfolder(cls, src, dst, symlinks=False, ignore=None):
         """Copy entire folder from src to dst"""
@@ -161,6 +165,7 @@ class FolderHandler:
         dfs(root_folder, 1)        
 
 class FileHandler:
+    """A class of methods involving in file operations such as tarfile, get data from files, make desired files."""
     @classmethod
     def tar_file(cls, file_url):
         import tarfile
@@ -300,6 +305,7 @@ class FileHandler:
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
 class ModelFileHandler:
+    """A class of methods involving in model file operations such as getting target checkpoints file path or model version folder    """
     @classmethod
     def print_existing_model_version_and_info(model_folder):
         """Print out existing model version name and its info"""
@@ -315,7 +321,7 @@ class ModelFileHandler:
 
     @classmethod
     def _select_ckpt_file_path(version_folder):
-        is isinstance(version_folder, str):
+        if isinstance(version_folder, str):
             version_folder = Path(version_folder)
         ckpt_folder = version_folder / 'checkpoints'
         # Check whether ckeckpoint folder exists and print out current exsiting ckpt files
@@ -396,6 +402,7 @@ class ModelFileHandler:
 
 
 class ConfigHandler:
+    """A class of methods involving in config operations such as saving config, loading config or changing CFG"""
     @classmethod
     def _make_config(CFGs):
         DCFG, MCFG, OCFG, NS = None, None, None, None
@@ -550,6 +557,7 @@ class ConfigHandler:
                 print(f"    {k}:  {v}")
 
 class NoisyStudentDataHandler:
+    """A class of methods handling noisy student architecture data"""
     @classmethod
     def save_pseudo_label_to_txt(cls, pseudo_labels, pseudo_label_txt_path):
         with open(pseudo_label_txt_path, 'w') as out_file:
@@ -584,6 +592,7 @@ class NoisyStudentDataHandler:
 
 
 class MetricsHandler:
+    """A class of methods handling model metrics (loss/ accuracy)"""
     @classmethod
     def save_metrics_to_txt(cls, epoch, loss, accuracy, metrics_txt_path):
         with open(metrics_txt_path, 'a') as out_file:
