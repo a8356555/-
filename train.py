@@ -56,8 +56,8 @@ def multi_train(config_dicts, model_classes, datamodules):
         single_train(model, datamodule, is_user_input_needed=False)
 
         
-def train(args):
+def train():
     model = get_model()        
-    datamodule = create_datamodule(args)    
+    datamodule = create_datamodule()
     trainer, model = single_train(model, datamodule)    
     return model, trainer, datamodule

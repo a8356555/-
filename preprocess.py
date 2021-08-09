@@ -172,3 +172,21 @@ def dali_custom_func(image):
     elif 'wrap' in DCFG.transform_approach:
         func = _copymakeborder_wrap
     return func(h, w, dh_half, dw_half, bg, image)
+
+
+def preprocess(image):
+    # 加邊框
+    h, w, c = image.shape
+    if h > w:
+        dh_half = int(0.1*h/2)
+        dw_half = int((h+2*dh_half-w)/2)
+    else:
+        dw_half = int(0.1*w/2)
+        dh_half = int((w+2*dw_half-h)/2)
+    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, cv2.BORDER_REPLICATE)
+    
+    transform = A.Compose([      
+                    A.Resize(224, 224),  # 變形                                                     
+                    ToTensorV2()
+    ])
+    return transform(image=image)['image']/255.0

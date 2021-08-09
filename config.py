@@ -35,8 +35,9 @@ class DCFG:
 class MCFG: 
     """Config for Model"""
     # model name / folder name
-    model_type = 'effb0'       ### 請修改 eg res18 / effb0 / gray effb0
-    other_settings = 'train directly on original data with no second data source, using dali'### 請修改
+    model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_custom_student | custom
+    model_class_name = ''
+    other_settings = 'train directly on original data with no second data source, using dali'### dali | gray |
     is_continued_training = True         ### 請修改
     
     # model training setting

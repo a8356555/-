@@ -111,11 +111,11 @@ class FolderHandler:
             else:
                 shutil.copy2(s, d)
     @classmethod
-    def handle_not_existing_folder(folder):
+    def handle_not_existing_folder(cls, folder):
         if isinstance(folder, str):
             folder = Path(folder)
         is_existing = folder.exists()
-        print(f'test if {folder_path} exists: {is_existing}, if False then mkdir')
+        print(f'test if {folder} exists: {is_existing}, if False then mkdir')
         if not is_existing:
             folder.mkdir(parents=True)
             print(f'test again if {folder} exists: {folder.exists()}')
@@ -315,6 +315,11 @@ class ModelFileHandler:
             greatest_metrics = MetricsHandler.get_greatest_metrics_from_txt(metrics_txt_path)
             print_dict[version_folder.name] = (other_setting, ckpt_files, greatest_metrics)
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
+
+    @classmethod
+    def get_best_model_ckpt(cls):
+        # TODO
+        pass 
 
     @classmethod
     def select_ckpt_file_path(cls, version_folder):
@@ -569,7 +574,7 @@ class NoisyStudentDataHandler:
         return pseudo_labels
 
     @classmethod
-    def get_noisy_student_data(cls, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt"):
+    def get_noisy_student_data(cls, student_iter=0, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt"):
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
         cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
         return ( noised_image_paths, noised_int_labels, 
@@ -578,13 +583,12 @@ class NoisyStudentDataHandler:
 
     @classmethod
     def _make_noisy_student_training_data_once(cls):
-        cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
         
         df_all, df_revised, df_checked = FileHandler.load_target_dfs()
         df_revised_not_used = df_revised[~(df_revised['path'].isin(cleaned_image_paths + valid_image_paths))] # there are some 
         
-        df_noised = df_all[~df_all.isin(df_checked['path'])].groupby('label').sample(100, replace=True)
+        df_noised = df_all[~df_all['path'].isin(df_checked['path'])].groupby('label').sample(100, replace=True)
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
         noised_image_paths += df_revised_not_used['path'].to_list()
         noised_int_labels += df_revised_not_used['int_label'].to_list()

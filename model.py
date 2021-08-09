@@ -1,14 +1,11 @@
 # model.py
 import os
+import re
 import pytorch_lightning as pl
 from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
-from torchvision import models
-from .config import MCFG, DCFG, OCFG, NS
-CFGs = [MCFG, DCFG, OCFG, NS]
-from .preprocess import dali_custom_func
-from .utils import MetricsHandler
+import torchvision
 
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.fn as fn
@@ -16,8 +13,13 @@ import nvidia.dali.types as types
 import nvidia.dali.ops as ops
 import nvidia.dali.plugin.pytorch as dalitorch
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator
-import torch.utils.dlpack as torch_dlpack
-# TODO: how to decouple YuShanClassifier and _get_raw_model()
+
+from .config import MCFG, DCFG, OCFG, NS
+CFGs = [MCFG, DCFG, OCFG, NS]
+from .preprocess import dali_custom_func
+from .utils import MetricsHandler, ModelFileHandler
+
+MODEL_BACKBONES = ["eff", "res", "custom"]
 
 class YuShanClassifier(pl.LightningModule):
     def __init__(self):
@@ -297,54 +299,43 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
 
 def _get_raw_model(
     model_type=MCFG.model_type, 
-    is_pretrained=MCFG.is_pretrained, 
+    is_pretrained=MCFG.is_pretrained,
     **kwargs):    
-    if '18' in model_type:
-        print('get res18!')
-        raw_model = models.resnet18(pretrained=is_pretrained)    
-    elif '34' in model_type:
-        print('get res34!')
-        raw_model = models.resnet34(pretrained=is_pretrained)
-    elif '50' in model_type:
-        print('get res50!')
-        raw_model = models.resnet50(pretrained=is_pretrained)
-    elif 'b0' in model_type:
-        print('get eff-net-b0!')
-        raw_model = EfficientNet.from_pretrained('efficientnet-b0')
-    elif 'b1' in model_type:
-        print('get eff-net-b1!')
-        raw_model = EfficientNet.from_pretrained('efficientnet-b1')
-    elif 'b2' in model_type:
-        print('get eff-net-b2!')
-        raw_model = EfficientNet.from_pretrained('efficientnet-b2')
-    elif 'noisy_student' in model_type:
-        studen_iter = if "student_iter" in kwargs.key() else NS.student_iter
-        dropout_rate = if "dropout_rate" in kwargs.key() else NS.dropout_rate
-        drop_connect_rate = if "drop_connect_rate" in kwargs.key() else NS.drop_connect_rate
 
-        model = EfficientNet.from_pretrained(f"efficientnet-b{student_iter}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
-    # elif ...
+    if 'noisy_student' in model_type:
+        eff_ver = re.search("[0-9]{1}", model_type).group(0)
+        dropout_rate = kwargs["dropout_rate"] if "dropout_rate" in kwargs.key() else NS.dropout_rate
+        drop_connect_rate = kwargs["drop_connect_rate"] if "drop_connect_rate" in kwargs.key() else NS.drop_connect_rate
+        model = EfficientNet.from_pretrained(f"efficientnet-b{eff_ver}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
+    elif 'eff' in model_type:
+        eff_type = re.search("b[0-7]{1}", model_type)
+        raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
+    else: # model in torchvision.models 
+        raw_model = getattr(torchvision.models, model_type)(pretrained=is_pretrained)
+    
+    print(f"Get {model_type}!")
     return raw_model
 
 def get_model(
-    model_type=MCFG.model_tpye, 
+    model_class_name=MCFG.model_class_name,
     ckpt_path=MCFG.ckpt_path, 
-    is_continued_training=MCFG.is_continued_training,
-    **kwargs): 
-    #TODO: adding dali   
-    if 'res' in model_type:
-        model = ResClassifier().load_from_checkpoint(ckpt_path) if is_continued_training else ResClassifier()
-    elif 'eff' in model_type:
-        model = EfficientClassifier().load_from_checkpoint(ckpt_path) if is_continued_training else EfficientClassifier()
-    elif 'res' in model_type and 'gray' in model_type:
-        model = GrayResClassifier().load_from_checkpoint(ckpt_path) if is_continued_training else GrayResClassifier()
-    elif 'eff' in model_type and 'gray' in model_type:
-        model = GrayEffClassifier().load_from_checkpoint(ckpt_path) if is_continued_training else GrayEffClassifier()
-    elif 'custom' in model_type:
-        model = CustomModelClassifier.load_from_checkpoint(ckpt_path) if is_continued_training else CustomModelClassifier()
-    elif 'noisy_student' in model_type:
-        model = NoisyStudentDaliEffClassifier.load_from_checkpoint(ckpt_path) if is_continued_training else NoisyStudentDaliEffClassifier()
-    # elif ...
-    else:
-        raise RuntimeError("invalid model type config")
+    is_continued_training=MCFG.is_continued_training,    
+    **kwargs):
+    """
+    Arguments:
+        classifier_name: str, full classifer class name        
+    """     
+    g = globals().copy()
+    model_class_names = [k for k in g.keys() if not k.startswith('_') and 'Classifier' in k]
+    assert model_class_name in model_class_names, f"Wrong classifier class name, should be one of {model_class_names}"
+    ModelClass = g[model_class_name]        
+
+    model = ModelClass.load_from_checkpoint(ckpt_path) if is_continued_training else ModelClass()
+    return model    
+
+def get_pred_model(model_class_name):
+    # TODO
+    # best_model_ckpt = ModelFileHandler.get_best_model_ckpt()
+    best_model_ckpt = MCFG.ckpt_path
+    model = get_model(model_class_name=model_class_name, ckpt_path=best_model_ckpt, is_continued_training=True)
     return model
