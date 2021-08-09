@@ -6,7 +6,9 @@ import torch
 from torch import nn
 from torchvision import models
 from .config import MCFG, DCFG, OCFG, NS
+CFGs = [MCFG, DCFG, OCFG, NS]
 from .preprocess import dali_custom_func
+from .utils import MetricsHandler
 
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.fn as fn
@@ -29,11 +31,7 @@ class YuShanClassifier(pl.LightningModule):
     def cross_entropy_loss(self, logits, labels):
         return nn.CrossEntropyLoss()(logits, labels)
 
-    def training_step(self, train_batch, batch_idx):        
-        if batch_idx == 1:
-            print(f'current epoch: {self.current_epoch}')
-            #os.system("nvidia-smi")        
-       
+    def training_step(self, train_batch, batch_idx):               
         x, y = self.process_batch(train_batch)
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)        
@@ -48,8 +46,8 @@ class YuShanClassifier(pl.LightningModule):
         dataset_size = sum([x['batch_size'] for x in outputs])
         acc = epoch_corrects/dataset_size
         loss = sum([x['loss'] for x in outputs])/dataset_size
-
-        print(f'- train_epoch_acc: {acc}, train_loss: {loss}\n')
+        print(f"current epoch: {self.current_epoch}")
+        print(f"- train_epoch_acc: {acc}, train_loss: {loss}")
         self.log('train_epoch_acc', acc)
 
     def validation_step(self, val_batch, batch_idx):              
@@ -67,8 +65,11 @@ class YuShanClassifier(pl.LightningModule):
         dataset_size = sum([x['batch_size'] for x in outputs])
         acc = epoch_corrects/dataset_size  
         loss = sum([x['loss'] for x in outputs])/dataset_size
-
-        print(f'- val_epoch_acc: {acc}, val_loss: {loss}\n')        
+        
+        if (self.current_epoch+1) % MCFG.save_every_n_epoch == 0:
+            metrics_txt_path = os.path.join(MCFG.target_version_folder, 'metrics.txt')
+            MetricsHandler.save_metrics_to_txt(self.current_epoch, loss, acc, metrics_txt_path)
+        print(f'- val_epoch_acc: {acc}, val_loss: {loss}')        
         self.log('val_epoch_acc', acc)    
 
     def configure_optimizers(self):
@@ -269,17 +270,14 @@ class LightningWrapper(DALIClassificationIterator):
 class DaliEffClassifier(EfficientClassifier):    
     def __init__(self):
         super().__init__()
+        self.validation_epoch_end = self.validation_epoch_end_wrapper(self.validation_epoch_end)
 
-    def validation_epoch_end(self, outputs):
-        epoch_corrects = sum([x['running_corrects'] for x in outputs])
-        dataset_size = sum([x['batch_size'] for x in outputs])
-        acc = epoch_corrects/dataset_size  
-        loss = sum([x['loss'] for x in outputs])/dataset_size
-
-        print(f'- val_epoch_acc: {acc}, val_loss: {loss}\n')        
-        self.log('val_epoch_acc', acc)                 
-        self.trainer.datamodule.val_dataloader().reset()
-
+    def validation_epoch_end_wrapper(self, func):
+        def wrapper(*args, **kwargs):
+            func(*args, **kwargs)
+            self.trainer.datamodule.val_dataloader().reset()
+        return wrapper
+    
     def process_batch(self, batch):
         x, y = batch[0]['data'], batch[0]['label'].squeeze(-1)
         return x.float(), y.long()  
@@ -294,10 +292,6 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
     def cross_entropy_loss(self, logits, target_prob):
         target_prob = _handle_teacher_label_logits(target_prob)
         return torch.sum(target_prob*-F.log_softmax(logits))
-
-
-def load_target_ckpt_model(model_type, version, )
-    target_model_version_folder = MCFG.
 
 def _get_raw_model():    
     if '18' in MCFG.model_type:
@@ -326,17 +320,17 @@ def _get_raw_model():
 def get_model(): 
     #TODO: adding dali   
     if 'res' in MCFG.model_type:
-        model = ResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else ResClassifier()
+        model = ResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else ResClassifier()
     elif 'eff' in MCFG.model_type:
-        model = EfficientClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else EfficientClassifier()
+        model = EfficientClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else EfficientClassifier()
     elif 'res' in MCFG.model_type and 'gray' in MCFG.model_type:
-        model = GrayResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else GrayResClassifier()
+        model = GrayResClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else GrayResClassifier()
     elif 'eff' in MCFG.model_type and 'gray' in MCFG.model_type:
-        model = GrayEffClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else GrayEffClassifier()
+        model = GrayEffClassifier().load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else GrayEffClassifier()
     elif 'custom' in MCFG.model_type:
-        model = CustomModelClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else CustomModelClassifier()
+        model = CustomModelClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else CustomModelClassifier()
     elif 'noisy_student' in MCFG.model_type:
-        model = NoisyStudentDaliEffClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued else NoisyStudentDaliEffClassifier()
+        model = NoisyStudentDaliEffClassifier.load_from_checkpoint(MCFG.ckpt_path) if MCFG.is_continued_training else NoisyStudentDaliEffClassifier()
     # elif ...
     else:
         raise RuntimeError("invalid model type config")

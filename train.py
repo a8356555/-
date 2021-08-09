@@ -4,7 +4,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from .model import get_model
-from .config import DCFG, MCFG, OCFG, save_config, change_config
+from .config import DCFG, MCFG, OCFG, NS
+CFGs = [MCFG, DCFG, OCFG, NS]
+from .utils import ConfigHandler
 
 def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=True):
     if is_for_testing:
@@ -15,13 +17,12 @@ def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=T
             amp_level=MCFG.amp_level if MCFG.is_apex_used else None,        
         )
     else:
-        save_config(folder_path=MCFG.model_folder_path, model=model, is_user_input_needed=is_user_input_needed)
-        logger = TensorBoardLogger(MCFG.model_folder_path)
-
+        ConfigHandler.save_config(CFGs, folder=MCFG.target_version_folder, model=model, is_user_input_needed=is_user_input_needed)
+        logger = TensorBoardLogger(MCFG.target_version_folder)
 
         checkpoint_callback = ModelCheckpoint(
-            monitor='val_loss',
-            dirpath=MCFG.model_folder_path / "checkpoints",
+            monitor=MCFG.monitor,
+            dirpath=MCFG.target_version_folder / "checkpoints",
             filename='{epoch}',
             save_top_k = MCFG.save_top_k_models,
             every_n_val_epochs=MCFG.save_every_n_epoch,
@@ -50,7 +51,7 @@ def multi_train(config_dicts, model_classes, datamodules):
     """
     assert len(config_dicts) == len(datamodules) == len(model_classes), "unmatched input numbers"    
     for config_dict, Model, datamodule in zip(config_dicts, model_classes, datamodules):
-        change_config(**config_dict)
+        ConfigHandler.change_CFGs(CFGs, **config_dict)
         model = Model()
         single_train(model, datamodule, is_user_input_needed=False)
 
@@ -60,8 +61,8 @@ def train(args):
     datamodule = create_datamodule(args)    
     logger = TensorBoardLogger(MCFG.logger_path, name=MCFG.model_type, version=MCFG.version)
 
-    save_config(folder_path=MCFG.model_folder_path, model=model)
-    
+    ConfigHandler.save_config(CFGs, folder=MCFG.target_version_folder, model=model)
+            
     checkpoint_callback = ModelCheckpoint(
         monitor=MCFG.monitor,
         dirpath=os.path.join(MCFG.logger_path, MCFG.model_type, MCFG.version, MCFG.model_ckpt_dirname),

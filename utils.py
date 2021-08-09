@@ -7,6 +7,8 @@ import os
 import shutil
 import numpy as np
 import pandas as pd
+from pathlib import Path
+import json
 
 # please see #TODO
 
@@ -104,6 +106,15 @@ class FolderHandler:
                 shutil.copytree(s, d, symlinks, ignore)
             else:
                 shutil.copy2(s, d)
+    @classmethod
+    def handle_not_existing_folder(folder):
+        if isinstance(folder, str):
+            folder = Path(folder)
+        is_existing = folder.exists()
+        print(f'test if {folder_path} exists: {is_existing}, if False then mkdir')
+        if not is_existing:
+            folder.mkdir(parents=True)
+            print(f'test again if {folder} exists: {folder.exists()}')
 
     @classmethod
     def delete_useless_folder(cls, folder):        
@@ -288,6 +299,256 @@ class FileHandler:
         clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
+class ModelFileHandler:
+    @classmethod
+    def print_existing_model_version_and_info(model_folder):
+        """Print out existing model version name and its info"""
+        print_dict = {}
+        for version_folder in model_folder.glob("*v[0-9]*"): 
+            config = load_config(version_folder)
+            other_setting = config['other_settings'] if config else "No Config"
+            ckpt_files = ', '.join([ckpt_path.name for ckpt_path in version_folder.glob("**/*.ckpt")])
+            metrics_txt_path = version_folder/"metrics.txt"        
+            greatest_metrics = MetricHandler.get_greatest_metrics_from_txt(metrics_txt_path)
+            print_dict[version_folder.name] = (other_setting, ckpt_files, greatest_metrics)
+        print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
+
+    @classmethod
+    def _select_ckpt_file_path(version_folder):
+        is isinstance(version_folder, str):
+            version_folder = Path(version_folder)
+        ckpt_folder = version_folder / 'checkpoints'
+        # Check whether ckeckpoint folder exists and print out current exsiting ckpt files
+        assert ckpt_folder.exists(), 'there\'s still no ckeckpoint folder, please select another model version '
+        existing_ckpt_files = [x.name for x in ckpt_folder.glob("*.ckpt")]
+        print('existing ckpt file: ', existing_ckpt_files)
+        
+        # Enter the ckpt file to use, if there's more than 1 file with the same epoch num than enter the full name
+        epoch_num = input('which one to use? enter the epoch number: ')
+        ckpt_name = [x for x in existing_ckpt_files if epoch_num in x]
+        while len(ckpt_name) == 0: 
+            epoch_num = input('there no matched number,  enter the valid epoch number: ')
+            ckpt_name = [x for x in existing_ckpt_files if epoch_num in x]
+        
+        if len(ckpt_name) > 1:
+            ckpt_name = input(f"which one to use? enter the entire ckpt file name: {ckpt_name} ")    
+        else: # len == 1
+            ckpt_name = ckpt_name[0]
+        ckpt_file_path = ckpt_folder / ckpt_name
+
+        while not ckpt_file_path.exists():
+            epoch_num = input('the file dosen\'t exist, please enter again: ')
+            ckpt_file_path = ckpt_folder / epoch_num
+        return ckpt_file_path
+
+    @classmethod
+    def select_target_model_ver_and_ckpt(root_model_folder, model_type, date, is_existing):
+        """If the target model is existing, select target model version folder name and ckpt through model_type and date, else make a new version folder.
+        """
+        if isinstance(root_model_folder, 'str'):
+            root_model_folder = Path(root_model_folder)
+        if is_existing:        
+            model_folder = root_model_folder / model_type
+            # Loop until model_type input is valid (existing)
+            while not model_folder.exists():
+                print('existing model type: ', [x.name for x in root_model_folder.glob("*")])
+                print('invalid input!')
+                model_type = input('Please input correct existing model type: (list above) ')
+                model_folder = root_model_folder / model_type
+            
+            cls.print_existing_model_version_and_info(model_folder)
+            
+            # Choose a specific version and loop until the version input is valid
+            version = input('Please enter model version wanted: ')         
+            target_model_folder = model_folder / version
+            while not target_model_folder.exists():
+                print('invalid input!')
+                version = input('please enter correct model version: ')
+                target_model_folder = model_folder / version
+            
+            # Decide whether adding a new model version which is the continued version from the existing one
+            # If enter y/yes, then input continued folder name postfix
+            making_new_continued_version = input("Making new continued version folder?: (y/yes/n/no)")
+            if making_new_continued_version in ['y', 'yes']:
+                new_continued_folder_name = input("Enter new continued ver folder postfix name (eg. continued)")
+                version = (version + new_continued_folder_name)
+                print('New continued version folder name: {version}')                        
+            ckpt_file_path = cls._select_ckpt_file_path(target_model_folder)
+        else:
+            # If there's no existing model type then add one
+            model_folder = root_model_folder / model_type
+            FolderHandler.handle_not_existing_folder(model_folder)
+            cls.print_existing_model_version_and_info(model_folder)
+            
+            # Enter a new version, if the entered version is existing, then loop again
+            version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
+            version = f'{date}.{version_num}'
+            version_folder = model_folder / version
+            while version_folder.exists():
+                version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
+                version = f'{date}.{version_num}'
+                version_folder = model_folder / version
+            
+            ckpt_file_path = None
+            FolderHandler.handle_not_existing_folder(version_folder)
+
+        return version, ckpt_file_path, model_type
+
+
+class ConfigHandler:
+    @classmethod
+    def _make_config(CFGs):
+        DCFG, MCFG, OCFG, NS = None, None, None, None
+        for CFG in CFGs:
+            if CFG.__name__ == 'DCFG':  
+                DCFG = CFG
+            elif CFG.__name__ == 'MCFG':  
+                MCFG = CFG
+            elif CFG.__name__ == 'OCFG':  
+                OCFG = CFG
+            elif CFG.__name__ == 'NS':  
+                NS = CFG
+        
+        assert DCFG and MCFG, 'Please at lease pass DCFG and MCFG'
+        output_dict = {
+            'date': str(MCFG.today,),
+            'batch_size': DCFG.batch_size,
+            'num_workers': DCFG.num_workers,
+            'is_memory_pinned': DCFG.is_memory_pinned,
+            'model': {
+                'model_type': MCFG.model_type,
+                'is_pretrained': MCFG.is_pretrained,
+                'is_customized': MCFG.is_customized,
+                'model_architecture': str(model).split('\n')
+            },
+
+            'Apex': {
+                'is_apex_used': MCFG.is_apex_used,
+                'amp_level': MCFG.amp_level,
+                'precision': MCFG.precision
+            },
+            'max_epochs': MCFG.max_epochs,
+            'other_settings': MCFG.other_settings        
+        }
+        
+        if OCFG:
+            output_dict['optimizer'] = { 
+                'name': OCFG.optim_name,
+                'learning rate': {
+                    'params groups': len(OCFG.lr_group) if OCFG.has_differ_lr else 1,
+                    'lr': OCFG.lr_group if OCFG.has_differ_lr else OCFG.lr,
+                },            
+                'optimizer params': {
+                    'momentum': OCFG.momentum,
+                    'weight_decay': OCFG.weight_decay
+                },
+
+                'scheduler': {
+                    'has_scheduler': OCFG.has_scheduler,
+                    'name': OCFG.schdlr_name,
+                    'scheduler params': {
+                        'total_steps': OCFG.total_steps,
+                        'max_lr': OCFG.max_lr
+                    }
+                }
+            }
+        # handle noisy label config
+        if 'noisy_student' in MCFG.model_type and NS:
+            output_dict['noisy_student'] = {
+                'student_iter': NS.student_iter,
+                'temperature': NS.temperature,
+                'dropout_rate': NS.dropout_rate,
+                'drop_connect_rate': NS.drop_connect_rate,
+                'teacher_softmax_temp': NS.teacher_softmax_temp
+            }
+        return output_dict
+
+    @classmethod
+    def load_config(version_folder='.', file_path=None):        
+        data = None    
+        path = file_path if file_path else version_folder / 'config.json'
+        print(f'config file path: {path}')
+        if not path.exists():
+            print('This is a new model, still not config file')
+        else:
+            with open(path, 'r') as in_file:
+                data = json.load(in_file)
+        return data
+    
+    @classmethod
+    def save_config(CFGs, folder=Path('/content'), model=None, is_user_input_needed=True):  
+        FolderHandler.handle_not_existing_folder(folder)
+        output_dict = cls._make_config(CFGs, model)
+        print(json.dumps(output_dict, indent=4))
+        target_path = folder / 'config.json'
+        check = input(f'confirm saving {target_path}? (yes/y/n/no)') if is_user_input_needed else 'y'
+        if check in ['y', 'yes']:
+            print('start saving')        
+            with open(target_path, 'w') as out_file:
+                json.dump(output_dict, out_file, ensure_ascii=False, indent=4)
+        else:
+            print('stop saving')
+
+    @classmethod
+    def change_CFGs(CFGs, **kwargs):
+        """
+        Arguments:
+            CFGs: list, eg. [DCFG, MCFG, OCFG, NS]
+
+            kwargs: use keyword arguments or an unpacked dict
+            (DCFG related)
+                batch_size: int,
+                num_workers: int,
+                transform_approach: str, eg. 'replicate'
+            
+            (MCFG related)    
+                model_type: str, eg. 'noisy_student'
+                version_num: str, eg. 'v1'
+                max_epochs: int,
+                gpus: int,
+                other_settings: str, model description
+            
+            (OCFG related)    
+                optim_name: str, eg. 'Adam'
+                lr: float, eg. 1e-3
+                has_differ_lr: bool,
+                lr_group: list, eg. [1e-5, 1e-4, 1e-3]
+                weight_decay: float,
+                momentum: float, 
+            
+            (NS related)
+                student_iter: int,
+                temperature: int, (default 1) 
+                dropout_rate: float,
+                drop_connect_rate: float,
+                teacher_softmax_temp: int,
+        """
+        MCFG = None
+        for CFG in CFGs:
+            if CFG.__name__ == 'MCFG':
+                MCFG = CFG        
+        for key, value in kwargs.items():
+            no_CFGs_matched_with_the_key = True
+            for CFG in CFGs:
+                if hasattr(CFG, key):
+                    setattr(CFG, key, value)                
+                    no_CFGs_matched_with_the_key = False
+            if no_key_matched_with_CFGs:
+                print(f"wrong argument: {key}\tThere's no CFG matched with the desired argument, please modify the argument or pass the matched CFG")
+            
+
+        if MCFG:    
+            if 'version_num' in kwargs.keys():
+                MCFG.version = f"{MCFG.today}.{kwargs['version_num']}"        
+            target_version_folder = MCFG.root_model_folder / MCFG.model_type / MCFG.version        
+            FolderHandler.handle_not_existing_folder(target_version_folder)
+            MCFG.target_version_folder = target_version_folder          
+
+        for CFG in CFGs:
+            print(CFG.__module__)
+            for k, v in CFG.__dict__.items():
+                print(f"    {k}:  {v}")
+
 class NoisyStudentDataHandler:
     @classmethod
     def save_pseudo_label_to_txt(cls, pseudo_labels, pseudo_label_txt_path):
@@ -314,26 +575,29 @@ class NoisyStudentDataHandler:
     @classmethod
     def _make_noisy_student_training_data_once(cls):
         cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
-        cleaned_image_paths, _ = cls.read_path_and_label_from_txt(train_txt_path)
-        df_all, _, _ = cls.load_target_dfs()
+        cleaned_image_paths, _ = FileHandler.read_path_and_label_from_txt(train_txt_path)
+        df_all, _, _ = FileHandler.load_target_dfs()
         df_noised = df_all[~df_all.isin(cleaned_balanced_images)].groupby('label').sample(100, replace=True)
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
         noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
-        cls.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
+        FileHandler.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
 
-class MetricHandler:
+
+class MetricsHandler:
     @classmethod
-    def save_metrics_to_txt(cls, epoch, loss, accuracy, metric_txt_path):
-        with open(metric_txt_path, 'a') as out_file:
+    def save_metrics_to_txt(cls, epoch, loss, accuracy, metrics_txt_path):
+        with open(metrics_txt_path, 'a') as out_file:
             out_file.write(f"epoch: {epoch}, loss: {loss}, accuracy: {accuracy}")
 
     @classmethod
-    def get_lastest_metrics_from_txt(cls, metrics_txt_path):
-        if not os.path.exists(metrics_txt_path):
+    def get_greatest_metrics_from_txt(cls, metrics_txt_path):
+        if not os.path.exists(metrics_txt_path):            
             return ""
         
         with open(metrics_txt_path) as in_file:
-            final_record = in_file.readlines()[-1]
+            lines = in_file.readlines()
+        lines = lines.strip().split(', ')
+        records = [epoch.split(' ') for line in lines for epoch, loss, acc in line]
         return final_record    
 
 word_classes = FileHandler.get_word_classes_dict()
