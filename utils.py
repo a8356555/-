@@ -576,7 +576,7 @@ class NoisyStudentDataHandler:
 
     @classmethod
     def get_noisy_student_data(cls, student_iter=0, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt"):
-        noised_labels, cleaned_labels = None, None, None
+        noised_labels, cleaned_labels = None, None
 
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
         cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
@@ -584,7 +584,7 @@ class NoisyStudentDataHandler:
         if student_iter>0:
             noised_labels = torch.load(f"/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_soft_labels_{student_iter-1}")
             cleaned_labels = torch.load(f"/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_soft_labels_{student_iter-1}")
-            
+
         return ( noised_image_paths, noised_int_labels, noised_labels,
                  cleaned_image_paths, cleaned_int_labels, cleaned_labels,
                  valid_image_paths, valid_int_labels )
