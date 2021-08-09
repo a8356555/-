@@ -36,7 +36,7 @@ class MCFG:
     """Config for Model"""
     # model name / folder name
     model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_custom_student | custom
-    model_class_name = ''
+    model_class_name = 'EfficientClassifier'
     other_settings = 'train directly on original data with no second data source, using dali'### dali | gray |
     is_continued_training = True         ### 請修改
     

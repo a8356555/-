@@ -308,7 +308,7 @@ def _get_raw_model(
         drop_connect_rate = kwargs["drop_connect_rate"] if "drop_connect_rate" in kwargs.key() else NS.drop_connect_rate
         model = EfficientNet.from_pretrained(f"efficientnet-b{eff_ver}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
     elif 'eff' in model_type:
-        eff_type = re.search("b[0-7]{1}", model_type)
+        eff_type = re.search("b[0-7]{1}", model_type).group(0)
         raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
     else: # model in torchvision.models 
         raw_model = getattr(torchvision.models, model_type)(pretrained=is_pretrained)

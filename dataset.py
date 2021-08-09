@@ -112,15 +112,19 @@ def create_datamodule(other_settings=MCFG.other_settings):
     train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = None, None, None, None
 
     if setting_keyword in original_dataset_kw:
-        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels()
+        ( train_image_paths, train_int_labels, 
+          valid_image_paths, valid_int_labels ) = FileHandler.get_paths_and_int_labels()
     elif setting_keyword in cleaned_data_kw:
-        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
-        transform_func = transform_func
+        ( train_image_paths, train_int_labels, 
+          valid_image_paths, valid_int_labels ) = FileHandler.get_paths_and_int_labels(train_type='cleaned')        
     elif setting_keyword in second_source_kw:
-        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_second_source_data()
-        transform_func = second_source_transform_func
+        ( train_image_paths, train_int_labels, 
+          valid_image_paths, valid_int_labels ) = FileHandler.get_second_source_data()
+        transform_func = second_source_transform_func        
     elif setting_keyword in noisy_student_kw:
-        train_image_paths, train_labels, train_int_labels, valid_image_paths, valid_labels, valid_int_labels = NoisyStudentDataHandler.get_noisy_student_data(student_iter=NS.student_iter)
+        ( noised_image_paths, noised_int_labels, noised_labels,
+          cleaned_image_paths, cleaned_int_labels, cleand_labels, 
+          valid_image_paths, valid_int_labels, valid_labels ) = NoisyStudentDataHandler.get_noisy_student_data(student_iter=NS.student_iter)
 
     valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") if is_first_time else None
     train_input = {'image': train_images, 'label': train_labels, 'path': train_image_paths, 'int_label': train_int_labels}
