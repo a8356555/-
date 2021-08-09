@@ -7,19 +7,13 @@ import torch
 from torch import nn
 import torchvision
 
-from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
-import nvidia.dali.ops as ops
-import nvidia.dali.plugin.pytorch as dalitorch
-from nvidia.dali.plugin.pytorch import DALIClassificationIterator
-
 from .config import MCFG, DCFG, OCFG, NS
 CFGs = [MCFG, DCFG, OCFG, NS]
-from .preprocess import dali_custom_func
 from .utils import MetricsHandler, ModelFileHandler
 
 MODEL_BACKBONES = ["eff", "res", "custom"]
+
+# TODO: check _, y_hat = torch.max(logits, dim=1)
 
 class BaiscClassifier(pl.LightningModule):
     """Parent Class for all lightning modules"""
@@ -60,7 +54,9 @@ class BaiscClassifier(pl.LightningModule):
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         _, y_hat = torch.max(logits, dim=1)
+        print("max: "_, y_hat)
         running_corrects = torch.sum(y_hat == y)
+        print("correct numbers: ", running_corrects)
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
@@ -227,51 +223,6 @@ class CustomModelClassifier(BaiscClassifier):
 # DALI
 # ------------------
 
-
-class TrainPipeline(Pipeline):
-    def __init__(self, image_paths, int_labels, phase='train', device_id=0):        
-        super(TrainPipeline, self).__init__(DCFG.batch_size, DCFG.num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)        
-        random_shuffle = True if phase == 'train' else False
-        self.input = ops.readers.File(files=list(image_paths), labels=list(int_labels), random_shuffle=random_shuffle, name="Reader")
-        self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
-        dali_device = 'gpu'
-        self.resize = ops.Resize(device=dali_device)
-        self.crop = ops.Crop(device=dali_device, crop=[224.0, 224.0], dtype=types.FLOAT)
-        self.rotate = ops.Rotate(device=dali_device)  
-        self.transpose = ops.Transpose(device=dali_device, perm=[2, 0, 1])
-        self.phase=phase
-
-    def define_graph(self):
-        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
-        self.jpegs, self.labels = self.input() # (name='r')
-        output = self.decode(self.jpegs)
-        output = fn.python_function(output, function=dali_custom_func)
-        if 'gary' in MCFG.model_type:
-            output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
-        if self.phase == 'train':
-            w = fn.random.uniform(range=(224.0, 320.0))
-            h = fn.random.uniform(range=(224.0, 320.0))        
-            output = self.resize(output, resize_x=w, resize_y=h)        
-        else:
-            output = self.resize(output, size=(248.0, 248.0))
-        output = self.crop(output)        
-        output = self.rotate(output, angle=angle)
-        output = self.transpose(output)
-        output = output/255.0
-        return (output, self.labels)
-
-class LightningWrapper(DALIClassificationIterator):
-    def __init__(self, *kargs, **kvargs):
-        super().__init__(*kargs, **kvargs)
-        self.__code__ = None
-    def __next__(self):
-        out = super().__next__()
-        # DDP is used so only one pipeline per process
-        # also we need to transform dict returned by DALIClassificationIterator to iterable
-        # and squeeze the lables
-        out = out[0]
-        return (out[k] if k != "label" else torch.squeeze(out[k]) for k in self.output_map)
-
 class DaliEffClassifier(EfficientClassifier):    
     def __init__(self):
         super().__init__()
@@ -292,7 +243,6 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         super().__init__()
         self.teacher_model = teacher_model
 
-
     def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
 
@@ -301,9 +251,10 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         return torch.sum(target_prob*-F.log_softmax(logits))
 
 def _get_raw_model(
-    model_type=MCFG.model_type, 
-    is_pretrained=MCFG.is_pretrained,
-    **kwargs):    
+        model_type=MCFG.model_type, 
+        is_pretrained=MCFG.is_pretrained,
+        **kwargs
+    ):    
 
     if 'noisy_student' in model_type:
         eff_ver = re.search("[0-9]{1}", model_type).group(0)
@@ -320,10 +271,11 @@ def _get_raw_model(
     return raw_model
 
 def get_model(
-    model_class_name=MCFG.model_class_name,
-    ckpt_path=MCFG.ckpt_path, 
-    is_continued_training=MCFG.is_continued_training,    
-    **kwargs):
+        model_class_name=MCFG.model_class_name,
+        ckpt_path=MCFG.ckpt_path, 
+        is_continued_training=MCFG.is_continued_training,    
+        **kwargs
+    ):
     """
     Arguments:
         classifier_name: str, full classifer class name        

@@ -6,6 +6,16 @@ import albumentations.augmentations.transforms as transforms
 import cupy
 
 from .config import DCFG, MCFG
+# TODO decouple gray
+def _calculate_dhdw_half(h, w):
+    """Calculate difference of h or w in order to get a square """
+    if h > w:
+        dh_half = int(0.1*h/2)
+        dw_half = int((h+2*dh_half-w)/2)
+    else:
+        dw_half = int(0.1*w/2)
+        dh_half = int((w+2*dw_half-h)/2)
+    return dh_half, dw_half
 
 def _get_copyMakeBorder_flag():
     if 'replicate' in DCFG.transform_approach:
@@ -16,12 +26,8 @@ def _get_copyMakeBorder_flag():
 def _custom_opencv(image):
     # 加邊框
     h, w, c = image.shape
-    if h > w:
-        dh_half = int(0.1*h/2)
-        dw_half = int((h+2*dh_half-w)/2)
-    else:
-        dw_half = int(0.1*w/2)
-        dh_half = int((w+2*dw_half-h)/2)
+    dh_half, dw_half = _calculate_dhdw_half(h, w)
+
     if 'gray' in MCFG.model_type:
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
     flag = _get_copyMakeBorder_flag()
@@ -37,7 +43,7 @@ def transform_func(image=None):
                         A.RandomRotate90(p=0.2),
                         ToTensorV2()
                 ])
-    # image = _custom_opencv(image)    
+    image = _custom_opencv(image)    
     return transform(image=image)['image']/255.0
 
 # --------------------------
@@ -153,17 +159,9 @@ def _copymakeborder_replicate(h, w, dh_half, dw_half, bg, image):
     bg[dh_half:dh_half+h, dw_half+w:] = cupy.expand_dims(image[:,-1], axis=1)
     return bg
 
-
-
 def dali_custom_func(image):
     h, w, c = image.shape
-    if h > w:
-        dh_half = int(0.1*h/2)
-        dw_half = int((h+2*dh_half-w)/2)
-    else:
-        dw_half = int(0.1*w/2)
-        dh_half = int((w+2*dw_half-h)/2)
-    # 67 302 134 16
+    dh_half, dw_half = _calculate_dhdw_half(h, w)
     bg = cupy.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=cupy.uint8)
     bg[dh_half:dh_half+h, dw_half:dw_half+w, :] = image
 
@@ -177,12 +175,7 @@ def dali_custom_func(image):
 def preprocess(image):
     # 加邊框
     h, w, c = image.shape
-    if h > w:
-        dh_half = int(0.1*h/2)
-        dw_half = int((h+2*dh_half-w)/2)
-    else:
-        dw_half = int(0.1*w/2)
-        dh_half = int((w+2*dw_half-h)/2)
+    dh_half, dw_half = _calculate_dhdw_half(h, w)
     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, cv2.BORDER_REPLICATE)
     
     transform = A.Compose([      

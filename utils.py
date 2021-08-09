@@ -207,14 +207,14 @@ class FileHandler:
         return df_all, df_revised, df_checked
 
     @classmethod
-    def get_paths_and_int_labels(cls, train_type='all_train', train_txt_path=None, valid_txt_path=None):
+    def get_paths_and_int_labels(cls, train_type='mixed', train_txt_path=None, valid_txt_path=None):
         """
         Argument:
-            train_type: str, 'all_train' or 'cleaned' (default 'all_train')
+            train_type: str, 'mixed' or 'cleaned' (default 'mixed')
             train_txt_path: str, "/path/to/your/train/txt" , if this parameter is used then train_type will be ignored
         """        
         if train_txt_path is None:
-            if train_type == 'all_train':
+            if train_type == 'mixed':
                 train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/train_balanced_images.txt'
             elif train_type == 'cleaned':
                 train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
@@ -252,8 +252,8 @@ class FileHandler:
         return df_all
 
     @classmethod
-    def _make_train_valid_data_txt_once(cls):
-        """Call only once to make """
+    def _make_mixed_train_valid_data_txt_once(cls):
+        """Call only once to make half raw half cleaned data txt """
         def custom_func(gp_df):
             num = gp_df.shape[0]
             gp_df = pd.concat([gp_df]*(100//num+1))
@@ -422,6 +422,7 @@ class ConfigHandler:
         assert DCFG and MCFG, 'Please at lease pass DCFG and MCFG'
         output_dict = {
             'date': str(MCFG.today,),
+            'data_type': DCFG.data_type,
             'batch_size': DCFG.batch_size,
             'num_workers': DCFG.num_workers,
             'is_memory_pinned': DCFG.is_memory_pinned,
@@ -432,6 +433,7 @@ class ConfigHandler:
                 'model_architecture': str(model).split('\n')
             },
 
+            'is_dali_used': DCFG.is_dali_used,
             'Apex': {
                 'is_apex_used': MCFG.is_apex_used,
                 'amp_level': MCFG.amp_level,
@@ -507,6 +509,7 @@ class ConfigHandler:
 
             kwargs: use keyword arguments or an unpacked dict
             (DCFG related)
+                data_type: str,
                 batch_size: int,
                 num_workers: int,
                 transform_approach: str, eg. 'replicate'
@@ -581,12 +584,8 @@ class NoisyStudentDataHandler:
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
         cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
 
-        if student_iter>0:
-            noised_labels = torch.load(f"/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_soft_labels_{student_iter-1}")
-            cleaned_labels = torch.load(f"/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_soft_labels_{student_iter-1}")
-
-        return ( noised_image_paths, noised_int_labels, noised_labels,
-                 cleaned_image_paths, cleaned_int_labels, cleaned_labels,
+        return ( noised_image_paths, noised_int_labels,
+                 cleaned_image_paths, cleaned_int_labels,
                  valid_image_paths, valid_int_labels )
 
     @classmethod

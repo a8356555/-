@@ -27,6 +27,8 @@ class DCFG:
     batch_size = 128 # batch size
     num_workers = 4 # how many workers for loading data
     is_shuffle = True
+    data_type = 'mixed' # mixed, cleaned, noisy_student, 2nd
+    is_dali_used = True
     transform_approach = 'replicate'
     class_num = 801
     expected_num_per_class = 100
@@ -35,7 +37,7 @@ class DCFG:
 class MCFG: 
     """Config for Model"""
     # model name / folder name
-    model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_custom_student | custom
+    model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
     model_class_name = 'EfficientClassifier'
     other_settings = 'train directly on original data with no second data source, using dali'### dali | gray |
     is_continued_training = True         ### 請修改
