@@ -317,7 +317,7 @@ class ModelFileHandler:
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
     @classmethod
-    def _select_ckpt_file_path(cls, version_folder):
+    def select_ckpt_file_path(cls, version_folder):
         if isinstance(version_folder, str):
             version_folder = Path(version_folder)
         ckpt_folder = version_folder / 'checkpoints'
@@ -376,7 +376,7 @@ class ModelFileHandler:
                 new_continued_folder_name = input("Enter new continued ver folder postfix name (eg. continued)")
                 version = (version + new_continued_folder_name)
                 print('New continued version folder name: {version}')                        
-            ckpt_file_path = cls._select_ckpt_file_path(target_model_folder)
+            ckpt_file_path = cls.select_ckpt_file_path(target_model_folder)
         else:
             # If there's no existing model type then add one
             model_folder = root_model_folder / model_type
@@ -579,13 +579,17 @@ class NoisyStudentDataHandler:
     @classmethod
     def _make_noisy_student_training_data_once(cls):
         cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
-        cleaned_image_paths, _ = FileHandler.read_path_and_label_from_txt(cleaned_txt_path)
-        df_all, _, _ = FileHandler.load_target_dfs()
-        df_noised = df_all[~df_all.isin(cleaned_image_paths)].groupby('label').sample(100, replace=True)
+        cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = FileHandler.get_paths_and_int_labels(train_type='cleaned')
+        
+        df_all, df_revised, df_checked = FileHandler.load_target_dfs()
+        df_revised_not_used = df_revised[~(df_revised['path'].isin(cleaned_image_paths + valid_image_paths))] # there are some 
+        
+        df_noised = df_all[~df_all.isin(df_checked['path'])].groupby('label').sample(100, replace=True)
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
+        noised_image_paths += df_revised_not_used['path'].to_list()
+        noised_int_labels += df_revised_not_used['int_label'].to_list()
         noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
         FileHandler.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
-
 
 class MetricsHandler:
     """A class of methods handling model metrics (loss/ accuracy)"""

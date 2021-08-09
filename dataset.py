@@ -9,6 +9,9 @@ from .utils import ImageReader
 from .config import DCFG
 from .model import TrainPipeline
 
+# TODO: decoupling YushanDataModule and daliModule
+# class DatasetInterface:
+
 class YuShanDataset(Dataset):
     def __init__(self, input, transform=None):    
         self.image_paths = input['path']
