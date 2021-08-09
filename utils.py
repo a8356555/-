@@ -126,8 +126,7 @@ class FolderHandler:
         print(f"See whether {folder} exists: {os.path.exists(folder)}")
 
     @classmethod
-    def delete_useless_model_folder(cls, root_folder=None):
-        root_folder = root_folder or "/content/gdrive/MyDrive/SideProject/YuShanCompetition/model"
+    def delete_useless_model_folder(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model"):        
         for model_type in os.listdir(root_folder):            
             model_folder = os.path.join(root_folder, model_type)            
             if os.path.isdir(model_folder):
@@ -138,7 +137,7 @@ class FolderHandler:
                         cls.delete_useless_folder(version_folder)
 
     @classmethod
-    def show_folder_structure(cls, root_folder=None, max_layer=3):
+    def show_folder_structure(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model", max_layer=3):
         # TODO
         # prefix components:
         space =  '    '
@@ -147,7 +146,6 @@ class FolderHandler:
         tee =    '├── '
         last =   '└── '
 
-        root_folder = root_folder or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/model'
         print(os.path.basename(root_folder))
 
         def dfs(root_folder, cur_lay_num):
@@ -188,8 +186,7 @@ class FileHandler:
         return paths, labels
 
     @classmethod
-    def get_word_classes_dict(cls, path=None):        
-        training_data_dict_path = path if path else "/content/gdrive/MyDrive/SideProject/YuShanCompetition/training data dic.txt"
+    def get_word_classes_dict(cls, training_data_dict_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/training data dic.txt"):
         assert os.path.exists(training_data_dict_path), 'file does not exists or google drive is not connected'
 
         with open(training_data_dict_path, 'r') as file:
@@ -199,10 +196,10 @@ class FileHandler:
         return word_classes
 
     @classmethod
-    def load_target_dfs(cls, df_all_path=None, df_revised_path=None, df_checked_path=None):
-        df_all_path = df_all_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/all_data.csv'
-        df_revised_path = df_revised_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/df_revised.csv'
-        df_checked_path = df_checked_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/df_checked.csv'
+    def load_target_dfs(cls, 
+            df_all_path='/content/gdrive/MyDrive/SideProject/YuShanCompetition/all_data.csv', 
+            df_revised_path='/content/gdrive/MyDrive/SideProject/YuShanCompetition/df_revised.csv', 
+            df_checked_path='/content/gdrive/MyDrive/SideProject/YuShanCompetition/df_checked.csv'):
         df_all = pd.read_csv(df_all_path)
         df_revised = pd.read_csv(df_revised_path)
         df_checked = pd.read_csv(df_checked_path)
@@ -307,20 +304,20 @@ class FileHandler:
 class ModelFileHandler:
     """A class of methods involving in model file operations such as getting target checkpoints file path or model version folder    """
     @classmethod
-    def print_existing_model_version_and_info(model_folder):
+    def print_existing_model_version_and_info(cls, model_folder):
         """Print out existing model version name and its info"""
         print_dict = {}
         for version_folder in model_folder.glob("*v[0-9]*"): 
-            config = load_config(version_folder)
+            config = ConfigHandler.load_config(version_folder)
             other_setting = config['other_settings'] if config else "No Config"
             ckpt_files = ', '.join([ckpt_path.name for ckpt_path in version_folder.glob("**/*.ckpt")])
             metrics_txt_path = version_folder/"metrics.txt"        
-            greatest_metrics = MetricHandler.get_greatest_metrics_from_txt(metrics_txt_path)
+            greatest_metrics = MetricsHandler.get_greatest_metrics_from_txt(metrics_txt_path)
             print_dict[version_folder.name] = (other_setting, ckpt_files, greatest_metrics)
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
     @classmethod
-    def _select_ckpt_file_path(version_folder):
+    def _select_ckpt_file_path(cls, version_folder):
         if isinstance(version_folder, str):
             version_folder = Path(version_folder)
         ckpt_folder = version_folder / 'checkpoints'
@@ -348,10 +345,10 @@ class ModelFileHandler:
         return ckpt_file_path
 
     @classmethod
-    def select_target_model_ver_and_ckpt(root_model_folder, model_type, date, is_existing):
+    def select_target_model_ver_and_ckpt(cls, root_model_folder, model_type, date, is_existing):
         """If the target model is existing, select target model version folder name and ckpt through model_type and date, else make a new version folder.
         """
-        if isinstance(root_model_folder, 'str'):
+        if isinstance(root_model_folder, str):
             root_model_folder = Path(root_model_folder)
         if is_existing:        
             model_folder = root_model_folder / model_type
@@ -404,7 +401,7 @@ class ModelFileHandler:
 class ConfigHandler:
     """A class of methods involving in config operations such as saving config, loading config or changing CFG"""
     @classmethod
-    def _make_config(CFGs):
+    def _make_config(cls, CFGs):
         DCFG, MCFG, OCFG, NS = None, None, None, None
         for CFG in CFGs:
             if CFG.__name__ == 'DCFG':  
@@ -471,7 +468,7 @@ class ConfigHandler:
         return output_dict
 
     @classmethod
-    def load_config(version_folder='.', file_path=None):        
+    def load_config(cls, version_folder='.', file_path=None):        
         data = None    
         path = file_path if file_path else version_folder / 'config.json'
         print(f'config file path: {path}')
@@ -483,7 +480,7 @@ class ConfigHandler:
         return data
     
     @classmethod
-    def save_config(CFGs, folder=Path('/content'), model=None, is_user_input_needed=True):  
+    def save_config(cls, CFGs, folder=Path('/content'), model=None, is_user_input_needed=True):  
         FolderHandler.handle_not_existing_folder(folder)
         output_dict = cls._make_config(CFGs, model)
         print(json.dumps(output_dict, indent=4))
@@ -497,7 +494,7 @@ class ConfigHandler:
             print('stop saving')
 
     @classmethod
-    def change_CFGs(CFGs, **kwargs):
+    def change_CFGs(cls, CFGs, **kwargs):
         """
         Arguments:
             CFGs: list, eg. [DCFG, MCFG, OCFG, NS]
@@ -572,8 +569,7 @@ class NoisyStudentDataHandler:
         return pseudo_labels
 
     @classmethod
-    def get_noisy_student_data(cls, noised_txt_path=None):
-        noised_txt_path = noised_txt_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+    def get_noisy_student_data(cls, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt"):        
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
         cleaned_image_paths, cleaned_int_labels, valid_image_paths, valid_int_labels = cls.get_paths_and_int_labels(train_type='cleaned')
         return ( noised_image_paths, noised_int_labels, 
@@ -583,9 +579,9 @@ class NoisyStudentDataHandler:
     @classmethod
     def _make_noisy_student_training_data_once(cls):
         cleaned_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
-        cleaned_image_paths, _ = FileHandler.read_path_and_label_from_txt(train_txt_path)
+        cleaned_image_paths, _ = FileHandler.read_path_and_label_from_txt(cleaned_txt_path)
         df_all, _, _ = FileHandler.load_target_dfs()
-        df_noised = df_all[~df_all.isin(cleaned_balanced_images)].groupby('label').sample(100, replace=True)
+        df_noised = df_all[~df_all.isin(cleaned_image_paths)].groupby('label').sample(100, replace=True)
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
         noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
         FileHandler.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)

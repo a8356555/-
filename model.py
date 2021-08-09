@@ -15,6 +15,7 @@ import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 import nvidia.dali.ops as ops
 import nvidia.dali.plugin.pytorch as dalitorch
+from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 import torch.utils.dlpack as torch_dlpack
 
 class YuShanClassifier(pl.LightningModule):

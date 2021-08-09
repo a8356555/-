@@ -82,7 +82,7 @@ class NS:
     teacher_softmax_temp = 1
 
 # handle MCFG
-MCFG.version, MCFG.ckpt_path, MCFG.model_type = ModelDataHandler.select_target_model_ver_and_ckpt(MCFG.root_model_folder, MCFG.model_type, MCFG.today, MCFG.is_continued_training)
+MCFG.version, MCFG.ckpt_path, MCFG.model_type = ModelFileHandler.select_target_model_ver_and_ckpt(MCFG.root_model_folder, MCFG.model_type, MCFG.today, MCFG.is_continued_training)
 MCFG.target_version_folder = MCFG.root_model_folder / MCFG.model_type / MCFG.version
 # show some information
 config = ConfigHandler.load_config(MCFG.target_version_folder)
