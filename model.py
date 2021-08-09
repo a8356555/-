@@ -21,7 +21,8 @@ from .utils import MetricsHandler, ModelFileHandler
 
 MODEL_BACKBONES = ["eff", "res", "custom"]
 
-class YuShanClassifier(pl.LightningModule):
+class BaiscClassifier(pl.LightningModule):
+    """Parent Class for all lightning modules"""
     def __init__(self):
         super().__init__()        
         self.model = _get_raw_model()        
@@ -108,7 +109,7 @@ class YuShanClassifier(pl.LightningModule):
         """
         pass
 
-class ResNetClassifier(YuShanClassifier):
+class ResNetClassifier(BaiscClassifier):
     def __init__(self):
         super().__init__()
         num_input_fts = self.model.fc.in_features
@@ -127,7 +128,7 @@ class ResNetClassifier(YuShanClassifier):
         ]                
         return params_group
         
-class EfficientClassifier(YuShanClassifier):
+class EfficientClassifier(BaiscClassifier):
     def __init__(self):
         super().__init__()
         num_input_fts = self.model._fc.in_features
@@ -156,7 +157,7 @@ class GrayWrapperModel(nn.Module):
         x = self.conv1(x)        
         return self.model(x)
 
-class GrayResClassifier(YuShanClassifier):
+class GrayResClassifier(BaiscClassifier):
     def __init__(self):
         super().__init__()
         self.model = GrayWrapperModel(self.model)
@@ -178,7 +179,7 @@ class GrayResClassifier(YuShanClassifier):
         ]        
         return params_group 
 
-class GrayEffClassifier(YuShanClassifier):
+class GrayEffClassifier(BaiscClassifier):
     def __init__(self):
         super().__init__()        
         self.model = GrayWrapperModel(self.model)    
@@ -209,7 +210,7 @@ class CustomModel(nn.Module):
     def forward(self, x):
         pass
 
-class CustomModelClassifier(YuShanClassifier):
+class CustomModelClassifier(BaiscClassifier):
     def __init__(self):
         super.__init__()
         self.model = CustomModel()
@@ -287,8 +288,10 @@ class DaliEffClassifier(EfficientClassifier):
         return x.float(), y.long()  
 
 class NoisyStudentDaliEffClassifier(DaliEffClassifier):
-    def __init__(self):
+    def __init__(self, teacher_model):
         super().__init__()
+        self.teacher_model = teacher_model
+
 
     def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
