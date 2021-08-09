@@ -606,8 +606,9 @@ class MetricsHandler:
         with open(metrics_txt_path) as in_file:
             lines = in_file.readlines()
         lines = lines.strip().split(', ')
-        records = [epoch.split(' ') for line in lines for epoch, loss, acc in line]
-        return final_record    
+        sort_func = lambda line: float(re.search("accuracy: [0-9]*.[0-9]*", line).group(0).split(' ')[1]) 
+        sorted_lines = sorted(lines, key=sort_func)
+        return sorted_lines[-1]   
 
 word_classes = FileHandler.get_word_classes_dict()
 
