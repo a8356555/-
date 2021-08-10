@@ -37,7 +37,7 @@ def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=T
             log_every_n_steps=MCFG.log_every_n_steps, 
             flush_logs_every_n_steps=MCFG.log_every_n_steps,
             callbacks=[checkpoint_callback],
-            resume_from_checkpoint=MCFG.ckpt_path if MCFG.is_continued else None
+            resume_from_checkpoint=MCFG.ckpt_path if MCFG.is_continued_training else None
         )
 
     trainer.fit(model, datamodule=datamodule)

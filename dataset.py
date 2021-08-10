@@ -9,8 +9,9 @@ import nvidia.dali.types as types
 import nvidia.dali.ops as ops
 import nvidia.dali.plugin.pytorch as dalitorch
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
-from .preprocess import transform_func, second_source_transform_func, dali_custom_func, noisy_student_transform_func
+from .preprocess import transform_func, second_source_transform_func, dali_custom_func
 from .utils import ImageReader, NoisyStudentDataHandler
 from .config import DCFG, MCFG
 
@@ -72,27 +73,51 @@ class YushanDataModule(pl.LightningDataModule):
 # ------------------
 # DALI
 # ------------------
-class BasicCustomPipeline(Pipeline):
+class BasicPipeline(Pipeline):
     def __init__(self, 
-            image_paths, 
-            labels, 
+            inp_dict, 
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
-            device_id=0
+            device_id=0,
+            exec_async=True, 
+            exec_pipelined=True, 
+            seed=42
         ):
-        super(TrainPipeline, self).__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)        
+        super().__init__(batch_size, num_workers, device_id, exec_async=exec_async, exec_pipelined=exec_pipelined, seed=seed)
         random_shuffle = True if phase == 'train' else False
-        self.input = ops.readers.File(files=list(image_paths), labels=list(labels), random_shuffle=random_shuffle, name="Reader")
+        self.input = ops.readers.File(files=list(inp_dict['path']), labels=list(inp_dict['label']), random_shuffle=random_shuffle, name="Reader")
         self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
         self.dali_device = 'gpu'
         self.resize = ops.Resize(device=self.dali_device)
         self.crop = ops.Crop(device=self.dali_device, crop=[224.0, 224.0], dtype=types.FLOAT)
         self.transpose = ops.Transpose(device=self.dali_device, perm=[2, 0, 1])
         self.phase = phase
+    
+    def define_graph(self):
+        pass
+
+class BasicCustomPipeline(BasicPipeline):
+    def __init__(self, 
+            inp_dict, 
+            batch_size=DCFG.batch_size, 
+            num_workers=DCFG.num_workers, 
+            phase='train', 
+            device_id=0
+        ):
+        super().__init__(
+            inp_dict, 
+            batch_size, 
+            num_workers, 
+            phase, 
+            device_id, 
+            exec_async=False,
+            exec_pipelined=False, 
+            seed=42
+            )
+
 
     def define_graph(self):
-        print('test')
         self.jpegs, self.labels = self.input() 
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
@@ -100,18 +125,17 @@ class BasicCustomPipeline(Pipeline):
         output = self.crop(output)
         output = self.transpose(output)
         output = output/255.0
-        return (output, self.labels) 
+        return (output, self.labels)
 
 class AddRotateGrayPipeline(BasicCustomPipeline):
     def __init__(self, 
-            image_paths, 
-            labels, 
+            inp_dict,  
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)
+        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.dali_device)  
 
     def define_graph(self):
@@ -131,14 +155,13 @@ class AddRotateGrayPipeline(BasicCustomPipeline):
 
 class AddWaterPipeline(BasicCustomPipeline):
     def __init__(self, 
-            image_paths, 
-            labels, 
+            inp_dict,  
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)
+        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
         self.water = ops.Water(device=self.dali_device)  
 
     def define_graph(self):
@@ -157,16 +180,15 @@ class AddWaterPipeline(BasicCustomPipeline):
 
 class NoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
-            image_paths, 
-            labels, 
+            inp_dict,  
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)
+        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.dali_device)  
-        self.gaussian_blur = ops.GaussianBlur(device=self.dali_device)
+        self.gaussian_blur = ops.GaussianBlur(device=self.dali_device, window_size=5)
         self.twist = ops.ColorTwist(device=self.dali_device)
         self.jitter = ops.Jitter(device=self.dali_device)
 
@@ -175,7 +197,6 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
-        output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)     
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)        
@@ -195,9 +216,9 @@ class NoisyStudentPipeline(BasicCustomPipeline):
 class daliModule(pl.LightningDataModule):
     def __init__(self, train_pipeline, valid_pipeline):
         super(daliModule, self).__init__()
-        self.pip_train = 
+        self.pip_train = train_pipeline
         self.pip_train.build()
-        self.pip_valid = 
+        self.pip_valid = valid_pipeline
         self.pip_valid.build()
         self.train_loader = DALIClassificationIterator(self.pip_train, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
         self.valid_loader = DALIClassificationIterator(self.pip_valid, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
@@ -207,7 +228,7 @@ class daliModule(pl.LightningDataModule):
     def val_dataloader(self):
         return self.valid_loader
 
-def get_input_data_and_transform_func(data_type=OCFG.data_type):
+def get_input_data_and_transform_func(data_type=DCFG.data_type):
     """
     Arguments:
         data_type: str, 'mixed' or 'cleaned' or '2nd' or 'noisy_student'
@@ -244,7 +265,7 @@ def get_input_data_and_transform_func(data_type=OCFG.data_type):
     valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
     return train_input_dict, valid_input_dict, transform_func
 
-def get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_used=OCFG.is_dali_used, data_type=OCFG.data_type):
+def get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
     
     if is_dali_used:
         train_dataset = Pipeline(train_input_dict['path'], train_input_dict['int_label'])
@@ -256,7 +277,7 @@ def get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_use
     
     return train_dataset, valid_dataset
 
-def create_datamodule(is_dali_used=OCFG.is_dali_used, data_type=OCFG.data_type):
+def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
     train_input_dict, valid_input_dict, transform_func = get_input_data_and_transform_func(data_type)
     train_dataset, valid_dataset = get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_used=OCFG.is_dali_used, data_type=OCFG.data_type) 
     datamodule = YushanDataModule(train_dataset, valid_dataset)

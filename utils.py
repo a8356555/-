@@ -412,7 +412,7 @@ class ConfigHandler:
     """A class of methods involving in config operations such as saving config, loading config or changing CFG"""
     __slots__ = []
     @classmethod
-    def _make_config(cls, CFGs):
+    def _make_config(cls, CFGs, model):
         DCFG, MCFG, OCFG, NS = None, None, None, None
         for CFG in CFGs:
             if CFG.__name__ == 'DCFG':  

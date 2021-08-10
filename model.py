@@ -54,9 +54,7 @@ class BaiscClassifier(pl.LightningModule):
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         _, y_hat = torch.max(logits, dim=1)
-        print("max: "_, y_hat)
         running_corrects = torch.sum(y_hat == y)
-        print("correct numbers: ", running_corrects)
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
@@ -237,6 +235,7 @@ class DaliEffClassifier(EfficientClassifier):
     def process_batch(self, batch):
         x, y = batch[0]['data'], batch[0]['label'].squeeze(-1)
         return x.float(), y.long()  
+    
 
 class NoisyStudentDaliEffClassifier(DaliEffClassifier):
     def __init__(self, teacher_model):
