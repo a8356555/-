@@ -25,11 +25,11 @@ class DCFG:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     is_memory_pinned= True
     
-    batch_size = 128 # batch size
+    batch_size = 64 # batch size
     num_workers = 4 # how many workers for loading data
     is_shuffle = True
     data_type = 'noisy_student' # mixed, cleaned, noisy_student, 2nd
-    transform_approach = "" # replicate
+    transform_approach = "replicate, " # BORDER_TYPE: replicate | wrap, COLOR: gray|,
     is_dali_used = True
     class_num = 801
     expected_num_per_class = 100
@@ -40,7 +40,7 @@ class MCFG:
     # model name / folder name
     model_type = 'effb1_noisy_student'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
     model_class_name = 'DaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
-    other_settings = 'dali'         ### dali | gray |
+    other_settings = 'using noisy student'         ### dali | gray |
     is_continued_training = False         ### 請修改
     
     # model training setting

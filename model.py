@@ -31,9 +31,8 @@ def _get_raw_model(
         eff_type = re.search("b[0-7]{1}", raw_model_type).group(0)
         raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
     else: # model in torchvision.models 
-        raw_model = getattr(torchvision.models, raw_model_type)(pretrained=is_pretrained)
-    
-    print(f"Get {raw_model_type}!")
+        raw_model = getattr(torchvision.models, raw_model_type)(pretrained=is_pretrained)    
+    print(f"Get {raw_model_type}, model type: {model.__module__}")
     return raw_model
 
 class BaiscClassifier(pl.LightningModule):
@@ -96,7 +95,7 @@ class BaiscClassifier(pl.LightningModule):
     def configure_optimizers(self):
         if OCFG.has_differ_lr:
             params_group = self._get_params_group()
-            print(params_group)
+            print(f"params_group: {params_group}")
 
             optimizer = torch.optim.Adam(params_group, weight_decay=OCFG.weight_decay) if OCFG.optim_name == 'Adam' else \
                         torch.optim.SGD(params_group, momentum=OCFG.momentum, weight_decay=OCFG.weight_decay)
@@ -358,6 +357,7 @@ def get_model(
         model = ModelClass.load_from_checkpoint(ckpt_path, **{"raw_model": raw_model})
     else: 
         model = ModelClass(raw_model)
+    print(f"Model Class: {model.__module__}")
     return model    
 
 def get_pred_model(raw_model_type, best_model_ckpt=None):
@@ -368,6 +368,7 @@ def get_pred_model(raw_model_type, best_model_ckpt=None):
         model_class_name = "ResNetClassifier"
     elif re.search("eff|noisy_student|ns") in raw_model_type:
         model_class_name = "EfficientClassifier"
-    elif 
+    else:
+        raise ValueError("invalid model type input, please enter againg")
     model = get_model(raw_model_type=raw_model_type, model_class_name=model_class_name, ckpt_path=best_model_ckpt)
     return model

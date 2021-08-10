@@ -21,7 +21,7 @@ def single_predict(image_path, model):
 
 def predict(args):
     device = "cuda:0" if torch.cuda.is_available() and args.is_gpu_used else "cpu"
-    model = get_pred_model(args.raw_model_type, best_ckpt_path=args.checkpoint_path)
+    model = get_pred_model(args.model_type, best_ckpt_path=args.checkpoint_path)
     model.to(device)
     model.eval()
     assert os.path.exists(args.input_path)

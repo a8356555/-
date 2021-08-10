@@ -13,7 +13,7 @@ from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
 from .preprocess import transform_func, second_source_transform_func, dali_custom_func, dali_warpaffine_transform
 from .utils import ImageReader, NoisyStudentDataHandler
-from .config import DCFG, MCFG
+from .config import DCFG, MCFG, NS
 
 # TODO: decouple gray, add dali augmentation
 #
@@ -86,7 +86,7 @@ class BasicPipeline(Pipeline):
         ):
         super().__init__(batch_size, num_workers, device_id, exec_async=exec_async, exec_pipelined=exec_pipelined, seed=seed)
         random_shuffle = True if phase == 'train' else False
-        self.input = ops.readers.File(files=list(inp_dict['path']), labels=list(inp_dict['label']), random_shuffle=random_shuffle, name="Reader")
+        self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['int_label'], random_shuffle=random_shuffle, name="Reader")
         self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
         self.dali_device = 'gpu'
         self.resize = ops.Resize(device=self.dali_device)
@@ -123,7 +123,7 @@ class BasicCustomPipeline(BasicPipeline):
         self.jpegs, self.labels = self.input() 
         output = self.decode(self.jpegs)
         if self.custom_func:
-            output = fn.python_function(output, function=self.custom_function)
+            output = fn.python_function(output, function=self.custom_func)
         output = self.resize(output, size=(248.0, 248.0))
         output = self.crop(output)
         output = self.transpose(output)
@@ -153,6 +153,8 @@ class AddRotatePipeline(BasicCustomPipeline):
         output = self.resize(output, resize_x=w, resize_y=h)                
         output = self.crop(output)        
         output = self.rotate(output, angle=angle)
+        if 'gray' in DCFG.transform_approach:
+            output = fn.color_space_conversion(Types.RGB, Types.GRAY)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels)
@@ -200,8 +202,8 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         self.gaussian_blur = ops.GaussianBlur(device=self.dali_device, window_size=5)
         self.twist = ops.ColorTwist(device=self.dali_device)
         self.jitter = ops.Jitter(device=self.dali_device)
-        self.warpaffine = ops.WarpAffine(device=self.dali_device)
         self.warpaffine_transform = warpaffine_transform
+        self.warpaffine = ops.WarpAffine(device=self.dali_device)
 
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
@@ -227,17 +229,17 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         h = fn.random.uniform(range=(-0.5, 0.5))
         output = self.twist(output, saturation=s, contrast=c, brightness=b, hue=h)
         output = self.jitter(output)
-        transform = fn.external_source(batch=False, source=dali_random_transform)
         p =  fn.random.uniform(range=(-0.5, 0.5))
         if self.warpaffine_transform:
-            output = self.warpaffine(output, matrix=self.warpaffine_transform)
+            transform = fn.external_source(batch=False, source=self.warpaffine_transform)
+            output = self.warpaffine(output, matrix=transform)
         output = self.transpose(output)
         output = output/255.0
         return (raw_output, output, self.labels)
 
 class DaliModule(pl.LightningDataModule):
     def __init__(self, train_pipeline, valid_pipeline):
-        super(daliModule, self).__init__()
+        super().__init__()
         self.pip_train = train_pipeline
         self.pip_train.build()
         self.pip_valid = valid_pipeline
@@ -258,14 +260,13 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type):
     train_images ,valid_images, train_labels, valid_labels = None, None, None, None
     train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = None, None, None, None
     
-    transform_func = transform_func
-
+    transform_function = transform_func
     if data_type == 'noisy_student':
         ( noised_image_paths, noised_int_labels,
         cleaned_image_paths, cleaned_int_labels,
         valid_image_paths, valid_int_labels) = NoisyStudentDataHandler.get_noisy_student_data(student_iter=NS.student_iter)
-        
-        train_image_paths = noised_image_paths + cleaned_image_paths        
+        train_image_paths = noised_image_paths + cleaned_image_paths
+    
     else:
         if data_type == 'mixed':
             method_name = 'get_paths_and_int_labels'
@@ -278,22 +279,23 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type):
         elif data_type == '2nd':
             method_name = 'get_second_source_data' 
             kwargs = {}               
-            transform_func = second_source_transform_func
-        
-        train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = getattr(FileHandler, method_name)(**kwargs)
+            transform_function = second_source_transform_func        
 
-    valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") if is_first_time else None
+        train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = getattr(FileHandler, method_name)(**kwargs)
+        valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image")
+    
+    print(f"data type: {data_type}, train data numbers: {len(train_image_paths)}, valid data numbers: {len(valid_image_paths)}")
     train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths, 'int_label': train_int_labels}
     valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
-    return train_input_dict, valid_input_dict, transform_func
+    return train_input_dict, valid_input_dict, transform_function
 
 def get_datasets(
-    train_input_dict, 
-    valid_input_dict,
-    transform_func=None 
-    is_dali_used=DCFG.is_dali_used, 
-    data_type=DCFG.data_type,
-    **kwargs
+        train_input_dict, 
+        valid_input_dict,
+        transform_func=None, 
+        is_dali_used=DCFG.is_dali_used, 
+        data_type=DCFG.data_type,
+        **kwargs
     ):
     """
     kwargs:
@@ -337,7 +339,9 @@ def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
         transform_func, 
         is_dali_used=is_dali_used,
         data_type=data_type,
-        **kwargs) 
+        **kwargs
+        ) 
 
     datamodule = get_datamodule(train_dataset, valid_dataset, is_dali_used=is_dali_used)    
+    print(f"Using dali: {is_dali_used}, module type: {datamodule.__module__}")
     return datamodule

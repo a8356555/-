@@ -27,17 +27,9 @@ def _custom_opencv(image):
     # 加邊框
     h, w, c = image.shape
     dh_half, dw_half = _calculate_dhdw_half(h, w)
-
-    if 'gray' in MCFG.model_type:
+    
+    if 'gray' in DCFG.transform_approach:
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
-    flag = _get_copyMakeBorder_flag()
-    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
-    return image
-
-def _gray_custom_opencv(image)
-    h, w, c = image.shape
-    dh_half, dw_half = _calculate_dhdw_half(h, w)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
     flag = _get_copyMakeBorder_flag()
     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
     return image
@@ -106,7 +98,8 @@ def _second_source_custom_opencv(img):
         img = cv2.line(img, (x, y), (x+delta_x, y+delta_y), (r, g, b), w)
     if p2>0.4:
         img = cv2.line(img, (x2, y2), (x2+delta_x2, y2+delta_y2), (r, g, b), w)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    if 'gray' in DCFG.transform_approach:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     return img
 
 def second_source_transform_func(image=None):    
@@ -177,6 +170,8 @@ def dali_custom_func(image):
         func = _copymakeborder_replicate
     elif 'wrap' in DCFG.transform_approach:
         func = _copymakeborder_wrap
+    else:
+        raise ValueError("Invalid transform approach config")
     return func(h, w, dh_half, dw_half, bg, image)
 
 

@@ -445,6 +445,7 @@ class ConfigHandler:
             'batch_size': DCFG.batch_size,
             'num_workers': DCFG.num_workers,
             'is_memory_pinned': DCFG.is_memory_pinned,
+            'transform_approach': DCFG.transform_approach,
             'model': {
                 'model_type': MCFG.model_type,
                 'is_pretrained': MCFG.is_pretrained,
@@ -577,7 +578,7 @@ class ConfigHandler:
             MCFG.target_version_folder = target_version_folder          
 
         for CFG in CFGs:
-            print(CFG.__module__)
+            print(CFG.__class__)
             for k, v in CFG.__dict__.items():
                 print(f"    {k}:  {v}")
 
