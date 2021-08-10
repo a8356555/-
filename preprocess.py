@@ -156,14 +156,15 @@ def _copymakeborder_replicate(h, w, dh_half, dw_half, bg, image):
 
     bg[0:dh_half, dw_half:dw_half+w] = image[0,:]
     bg[dh_half+h:, dw_half:dw_half+w] = image[-1,:]
-    bg[dh_half:dh_half+h, 0:dw_half] = cupy.expand_dims(image[:,0], axis=1)
-    bg[dh_half:dh_half+h, dw_half+w:] = cupy.expand_dims(image[:,-1], axis=1)
+    bg[dh_half:dh_half+h, 0:dw_half] = np.expand_dims(image[:,0], axis=1)
+    bg[dh_half:dh_half+h, dw_half+w:] = np.expand_dims(image[:,-1], axis=1)
     return bg
 
 def dali_custom_func(image):
+    print(type(image))
     h, w, c = image.shape
     dh_half, dw_half = _calculate_dhdw_half(h, w)
-    bg = cupy.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=cupy.uint8)
+    bg = np.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=np.uint8)
     bg[dh_half:dh_half+h, dw_half:dw_half+w, :] = image
 
     if 'replicate' in DCFG.transform_approach:

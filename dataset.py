@@ -88,14 +88,20 @@ class BasicPipeline(Pipeline):
         random_shuffle = True if phase == 'train' else False
         self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['int_label'], random_shuffle=random_shuffle, name="Reader")
         self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
-        self.dali_device = 'gpu'
-        self.resize = ops.Resize(device=self.dali_device)
-        self.crop = ops.Crop(device=self.dali_device, crop=[224.0, 224.0], dtype=types.FLOAT)
-        self.transpose = ops.Transpose(device=self.dali_device, perm=[2, 0, 1])
+        self.device = 'gpu'
+        self.resize = ops.Resize(device=self.device)
+        self.crop = ops.Crop(device=self.device, crop=[224.0, 224.0], dtype=types.FLOAT)
+        self.transpose = ops.Transpose(device=self.device, perm=[2, 0, 1])
         self.phase = phase
     
     def define_graph(self):
-        pass
+        self.jpegs, self.labels = self.input() 
+        output = self.decode(self.jpegs)
+        output = self.resize(output, size=(248.0, 248.0))
+        output = self.crop(output)
+        output = self.transpose(output)
+        output = output/255.0
+        return (output, self.labels)
 
 class BasicCustomPipeline(BasicPipeline):
     def __init__(self, 
@@ -116,14 +122,14 @@ class BasicCustomPipeline(BasicPipeline):
             exec_pipelined=False, 
             seed=42
             )
-        self.custom_func = custom_func
+        self.python_function = ops.PythonFunction(device=self.device, function=custom_func) if custom_func else None
 
 
     def define_graph(self):
         self.jpegs, self.labels = self.input() 
         output = self.decode(self.jpegs)
-        if self.custom_func:
-            output = fn.python_function(output, function=self.custom_func)
+        if self.python_function:
+            output = self.python_function(output)
         output = self.resize(output, size=(248.0, 248.0))
         output = self.crop(output)
         output = self.transpose(output)
@@ -140,21 +146,22 @@ class AddRotatePipeline(BasicCustomPipeline):
             device_id=0
         ):        
         super().__init__(inp_dict, custom_function, batch_size, num_workers, phase, device_id)
-        self.rotate = ops.Rotate(device=self.dali_device)  
+        self.rotate = ops.Rotate(device=self.device)  
+        self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
 
     def define_graph(self):
-        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        if self.custom_func:
-            output = fn.python_function(output, function=self.custom_func)
+        if self.python_function:
+            output = self.python_function(output)
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)                
         output = self.crop(output)        
+        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         output = self.rotate(output, angle=angle)
-        if 'gray' in DCFG.transform_approach:
-            output = fn.color_space_conversion(Types.RGB, Types.GRAY)
+        if self.color_space_conversion:
+            output = self.color_space_conversion(output)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels)
@@ -169,14 +176,13 @@ class AddWaterPipeline(BasicCustomPipeline):
             device_id=0
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
-        self.water = ops.Water(device=self.dali_device)  
+        self.water = ops.Water(device=self.device)  
 
     def define_graph(self):
-        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        if self.custom_func:
-            output = fn.python_function(output, function=self.custom_func)
+        if self.python_function:
+            output = self.python_function(output)
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)        
@@ -185,6 +191,60 @@ class AddWaterPipeline(BasicCustomPipeline):
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels) 
+
+class NoisyStudentPipelineTest(BasicCustomPipeline):
+    def __init__(self, 
+            inp_dict,
+            custom_func=None,
+            warpaffine_transform=None,
+            batch_size=DCFG.batch_size, 
+            num_workers=DCFG.num_workers, 
+            phase='train', 
+            device_id=0
+        ):        
+        super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
+        self.decode = ops.decoders.Image(device="cpu", output_type=types.RGB)        
+        self.transpose = ops.Transpose(device=self.device, perm=[2, 0, 1])
+        self.phase = phase
+        self.python_function = ops.PythonFunction(device="cpu", function=custom_func)
+        self.fast_resize_crop = ops.FastResizeCropMirror(crop=[224.0, 224.0], mirror=0)
+        self.rotate = ops.Rotate(device=self.device)  
+        self.gaussian_blur = ops.GaussianBlur(device=self.device, window_size=5)
+        self.twist = ops.ColorTwist(device=self.device)
+        self.jitter = ops.Jitter(device=self.device)
+        self.warpaffine_transform = warpaffine_transform
+        self.warpaffine = ops.WarpAffine(device=self.device)
+
+    def define_graph(self):
+        self.jpegs, self.labels = self.input() # (name='r')
+        output = self.decode(self.jpegs)
+        if self.python_function:
+            output = self.python_function(output)
+        
+        raw_output = self.fast_resize_crop(output, resize_x=248.0, resize_y=248.0)
+        raw_output = self.transpose(raw_output.gpu())
+        raw_output = raw_output/255.0
+
+        w = fn.random.uniform(range=(224.0, 320.0))
+        h = fn.random.uniform(range=(224.0, 320.0))
+        
+        output = self.fast_resize_crop(output, resize_x=w, resize_y=h)        
+        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
+        output = self.rotate(output.gpu(), angle=angle)
+        output = self.gaussian_blur(output)
+        s = fn.random.uniform(range=(0.5, 1.5)) 
+        c = fn.random.uniform(range=(0.5, 1.5))  
+        b = fn.random.uniform(range=(0.875, 1.125)) 
+        h = fn.random.uniform(range=(-0.5, 0.5))
+        output = self.twist(output, saturation=s, contrast=c, brightness=b, hue=h)
+        output = self.jitter(output)
+        p =  fn.random.uniform(range=(-0.5, 0.5))
+        if self.warpaffine_transform:
+            transform = fn.external_source(batch=False, source=self.warpaffine_transform)
+            output = self.warpaffine(output, matrix=transform)
+        output = self.transpose(output)
+        output = output/255.0
+        return (raw_output, output, self.labels)
 
 
 class NoisyStudentPipeline(BasicCustomPipeline):
@@ -198,19 +258,20 @@ class NoisyStudentPipeline(BasicCustomPipeline):
             device_id=0
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
-        self.rotate = ops.Rotate(device=self.dali_device)  
-        self.gaussian_blur = ops.GaussianBlur(device=self.dali_device, window_size=5)
-        self.twist = ops.ColorTwist(device=self.dali_device)
-        self.jitter = ops.Jitter(device=self.dali_device)
+        
+        self.fast_resize_crop = ops.FastResizeCropMirror(crop=[224.0, 224.0], mirror=0)
+        self.rotate = ops.Rotate(device=self.device)  
+        self.gaussian_blur = ops.GaussianBlur(device=self.device, window_size=5)
+        self.twist = ops.ColorTwist(device=self.device)
+        self.jitter = ops.Jitter(device=self.device)
         self.warpaffine_transform = warpaffine_transform
-        self.warpaffine = ops.WarpAffine(device=self.dali_device)
+        self.warpaffine = ops.WarpAffine(device=self.device)
 
     def define_graph(self):
-        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        if self.custom_func:
-            output = fn.python_function(output, function=self.custom_func)
+        if self.python_function:
+            output = self.python_function(output)
         
         raw_output = self.resize(output, resize_x=248, resize_y=248)
         raw_output = self.crop(raw_output)
@@ -221,6 +282,7 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)
         output = self.crop(output)        
+        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         output = self.rotate(output, angle=angle)
         output = self.gaussian_blur(output)
         s = fn.random.uniform(range=(0.5, 1.5)) 
@@ -312,7 +374,7 @@ def get_datasets(
     
     if data_type == 'noisy_student':    
         train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
-        valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
+        valid_dataset = NoisyStudentPipelineTest(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif is_dali_used:
         train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
