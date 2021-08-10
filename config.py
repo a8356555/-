@@ -39,7 +39,7 @@ class MCFG:
     """Config for Model"""
     # model name / folder name
     model_type = 'effb1_noisy_student'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
-    model_class_name = 'DaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
+    model_class_name = 'NoisyStudentDaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
     other_settings = 'using noisy student'         ### dali | gray |
     is_continued_training = False         ### 請修改
     
