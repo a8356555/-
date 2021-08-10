@@ -40,6 +40,10 @@ class BaiscClassifier(pl.LightningModule):
     def __init__(self, raw_model=None):
         super().__init__()        
         self.model = raw_model
+        for CFG in CFGs:
+            config_dict = { k:v for k, v in CFG.__dict__.items()\ 
+                           if not v.startswith("_") or isinstance(v, (str, list, int, float)) }
+            self.save_hyperparameters(config_dict)
     
     def forward(self, x):
         return self.model(x)
