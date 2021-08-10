@@ -10,7 +10,7 @@ import torchvision
 
 from .config import MCFG, DCFG, OCFG, NS
 CFGs = [MCFG, DCFG, OCFG, NS]
-from .utils import MetricsHandler, ModelFileHandler
+from .utils import ModelFileHandler
 
 MODEL_BACKBONES = ["eff", "res", "custom"]
 
@@ -90,9 +90,6 @@ class BaiscClassifier(pl.LightningModule):
         acc = epoch_corrects/dataset_size  
         loss = sum([x['loss'] for x in outputs])/dataset_size
         
-        if (self.current_epoch+1) % MCFG.save_every_n_epoch == 0:
-            metrics_txt_path = os.path.join(MCFG.target_version_folder, 'metrics.txt')
-            MetricsHandler.save_metrics_to_txt(self.current_epoch, loss, acc, metrics_txt_path)
         print(f'- val_epoch_acc: {acc}, val_loss: {loss}')        
         self.log('val_epoch_acc', acc)    
 
