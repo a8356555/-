@@ -129,17 +129,6 @@ class FolderHandler:
         print(f"See whether {folder} exists: {os.path.exists(folder)}")
 
     @classmethod
-    def delete_useless_model_folder(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model"):        
-        for model_type in os.listdir(root_folder):            
-            model_folder = os.path.join(root_folder, model_type)            
-            if os.path.isdir(model_folder):
-                for version in os.listdir(model_folder):
-                    version_folder = os.path.join(model_folder, version)
-                    folder_content = os.listdir(version_folder)
-                    if 'config.json' not in folder_content and 'checkpoints' not in folder_content:
-                        cls.delete_useless_folder(version_folder)
-
-    @classmethod
     def show_folder_structure(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model", max_layer=3):
         # TODO
         # prefix components:
@@ -309,6 +298,22 @@ class ModelFileHandler:
     """A class of methods involving in model file operations such as getting target checkpoints file path or model version folder    """
     __slots__ = []
     @classmethod
+    def delete_useless_model_folder(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model"):        
+        for model_type in os.listdir(root_folder):            
+            model_folder = os.path.join(root_folder, model_type)            
+            if os.path.isdir(model_folder):
+                for version in os.listdir(model_folder):
+                    version_folder = os.path.join(model_folder, version)
+                    folder_content = [content for content in os.listdir(version_folder) if not content.startswith("_")]
+                    deleter_cond = ('test' in version_folder) or \
+                                   (len(folder_content) == 0) or \
+                                   ('config.json' not in folder_content and 'checkpoints' not in folder_content)
+                    if deleter_cond:
+                        FolderHandler.delete_useless_folder(version_folder)
+                    
+                    
+
+    @classmethod
     def print_existing_model_version_and_info(cls, model_folder):
         """Print out existing model version name and its info"""
         print_dict = {}
@@ -410,11 +415,15 @@ class ModelFileHandler:
             # Enter a new version, if the entered version is existing, then loop again
             version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
             version = f'{date}.{version_num}'
-            version_folder = model_folder / version
+            version_folder = model_folder / version            
             while version_folder.exists():
-                version_num = input('please enter version number bigger than existing ones(eg. v1): ') 
-                version = f'{date}.{version_num}'
-                version_folder = model_folder / version
+                overwrite = input("Overwrite current folder? (y/yes/n/no): ")
+                if overwrite in ['y', 'yes']:
+                    break
+                else:
+                    version_num = input("Enter the same number again, or enter version number bigger than existing ones: ")                                                
+                    version = f'{date}.{version_num}'
+                    version_folder = model_folder / version
             
             ckpt_file_path = None
             FolderHandler.handle_not_existing_folder(version_folder)
