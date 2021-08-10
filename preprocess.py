@@ -172,6 +172,38 @@ def dali_custom_func(image):
     return func(h, w, dh_half, dw_half, bg, image)
 
 
+def dali_random_transform():
+    dst_cx, dst_cy = (200,200)
+    src_cx, src_cy = (200,200)
+
+    # This function uses homogeneous coordinates - hence, 3x3 matrix
+
+    # translate output coordinates to center defined by (dst_cx, dst_cy)
+    t1 = np.array([[1, 0, -dst_cx],
+                   [0, 1, -dst_cy],
+                   [0, 0, 1]])
+    def u():
+        return np.random.uniform(-0.2, 0.2)
+
+    # apply a randomized affine transform - uniform scaling + some random distortion
+    m = np.array([
+        [1 + u(),     u(),  0],
+        [    u(), 1 + u(),  0],
+        [      0,       0,  1]])
+
+    # translate input coordinates to center (src_cx, src_cy)
+    t2 = np.array([[1, 0, src_cx],
+                   [0, 1, src_cy],
+                   [0, 0, 1]])
+
+    # combine the transforms
+    m = (np.matmul(t2, np.matmul(m, t1)))
+
+    # remove the last row; it's not used by affine transform
+    return m[0:2,0:3].astype(np.float32)
+
+
+
 def preprocess(image):
     # 加邊框
     h, w, c = image.shape

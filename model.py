@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
+import torch.nn.functional as F
 import torchvision
 
 from .config import MCFG, DCFG, OCFG, NS
@@ -13,13 +14,35 @@ from .utils import MetricsHandler, ModelFileHandler
 
 MODEL_BACKBONES = ["eff", "res", "custom"]
 
-# TODO: check _, y_hat = torch.max(logits, dim=1)
+# TODO: decoupling raw_model and Basic Classifier 
+
+def _get_raw_model(
+        model_type=MCFG.model_type, 
+        is_pretrained=MCFG.is_pretrained,
+        **kwargs
+    ):    
+
+    if 'noisy_student' in model_type:
+        eff_ver = re.search("[0-9]{1}", model_type).group(0)
+        dropout_rate = kwargs["dropout_rate"] if "dropout_rate" in kwargs.keys() else NS.dropout_rate
+        drop_connect_rate = kwargs["drop_connect_rate"] if "drop_connect_rate" in kwargs.keys() else NS.drop_connect_rate
+        raw_model = EfficientNet.from_pretrained(f"efficientnet-b{eff_ver}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
+    elif 'eff' in model_type:
+        eff_type = re.search("b[0-7]{1}", model_type).group(0)
+        raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
+    else: # model in torchvision.models 
+        raw_model = getattr(torchvision.models, model_type)(pretrained=is_pretrained)
+    
+    print(f"Get {model_type}!")
+    return raw_model
 
 class BaiscClassifier(pl.LightningModule):
     """Parent Class for all lightning modules"""
+    raw_model_type = MCFG.model_type
+    is_pretrained = MCFG.is_pretrained
     def __init__(self):
         super().__init__()        
-        self.model = _get_raw_model()        
+        self.model = _get_raw_model(model_type=self.raw_model_type, is_pretrained=self.is_pretrained)
     def forward(self, x):
         return self.model(x)
 
@@ -238,16 +261,19 @@ class DaliEffClassifier(EfficientClassifier):
     
 
 class NoisyStudentDaliEffClassifier(DaliEffClassifier):
-    def __init__(self, teacher_model):
+    def __init__(self):
         super().__init__()
+        self.teacher_model = None
+
+    def set_teacher_model(self, teacher_model):
         self.teacher_model = teacher_model
-        self.teacher.eval()
+        self.teacher_model.eval()
 
     def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
 
     def cross_entropy_loss(self, logits, label_logits):
-        target_prob = _handle_teacher_label_logits(label_logits)
+        target_prob = self._handle_teacher_label_logits(label_logits)
         return torch.sum(target_prob*-F.log_softmax(logits))
     
     def process_batch_train(self, batch):
@@ -259,9 +285,9 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
       return x.float(), y.long()
 
     def training_step(self, train_batch, batch_idx):               
-        raw_x, x, _ = self.process_batch_train(train_batch)
+        raw_x, x, y = self.process_batch_train(train_batch)
         logits = self.forward(x)
-        label_logits = self.teacher(raw_x)
+        label_logits = self.teacher_model(raw_x)
         loss = self.cross_entropy_loss(logits, label_logits)
         _, pred = torch.max(logits, dim=1)
         _, label = torch.max(label_logits, dim=1) 
@@ -271,9 +297,9 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
 
     def validation_step(self, valid_batch, batch_idx):               
-        x, _ = self.process_batch(valid_batch)
+        x, y = self.process_batch(valid_batch)
         logits = self.forward(x)
-        label_logits = self.teacher(raw_x)
+        label_logits = self.teacher_model(x)
         loss = self.cross_entropy_loss(logits, label_logits)
         _, pred = torch.max(logits, dim=1)
         _, label = torch.max(label_logits, dim=1) 
@@ -310,27 +336,9 @@ class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
         ]                
         return params_group
 
-def _get_raw_model(
-        model_type=MCFG.model_type, 
-        is_pretrained=MCFG.is_pretrained,
-        **kwargs
-    ):    
-
-    if 'noisy_student' in model_type:
-        eff_ver = re.search("[0-9]{1}", model_type).group(0)
-        dropout_rate = kwargs["dropout_rate"] if "dropout_rate" in kwargs.key() else NS.dropout_rate
-        drop_connect_rate = kwargs["drop_connect_rate"] if "drop_connect_rate" in kwargs.key() else NS.drop_connect_rate
-        model = EfficientNet.from_pretrained(f"efficientnet-b{eff_ver}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
-    elif 'eff' in model_type:
-        eff_type = re.search("b[0-7]{1}", model_type).group(0)
-        raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
-    else: # model in torchvision.models 
-        raw_model = getattr(torchvision.models, model_type)(pretrained=is_pretrained)
-    
-    print(f"Get {model_type}!")
-    return raw_model
-
 def get_model(
+        raw_model_type=MCFG.model_type,
+        is_pretrained=MCFG.is_pretrained,
         model_class_name=MCFG.model_class_name,
         ckpt_path=MCFG.ckpt_path, 
         is_continued_training=MCFG.is_continued_training,    
@@ -344,8 +352,11 @@ def get_model(
     model_class_names = [k for k in g.keys() if not k.startswith('_') and 'Classifier' in k]
     assert model_class_name in model_class_names, f"Wrong classifier class name, should be one of {model_class_names}"
     ModelClass = g[model_class_name]        
+    
+    BaiscClassifier.is_pretrained = is_pretrained
+    BaiscClassifier.raw_model_type = raw_model_type
 
-    model = ModelClass.load_from_checkpoint(ckpt_path) if is_continued_training else ModelClass()
+    model = ModelClass.load_from_checkpoint(ckpt_path) if is_continued_training or ckpt_path else ModelClass()
     return model    
 
 def get_pred_model(model_class_name):

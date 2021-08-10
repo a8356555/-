@@ -11,7 +11,7 @@ import nvidia.dali.plugin.pytorch as dalitorch
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator, DALIGenericIterator
 from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
-from .preprocess import transform_func, second_source_transform_func, dali_custom_func
+from .preprocess import transform_func, second_source_transform_func, dali_custom_func, dali_random_transform
 from .utils import ImageReader, NoisyStudentDataHandler
 from .config import DCFG, MCFG
 
@@ -178,6 +178,7 @@ class AddWaterPipeline(BasicCustomPipeline):
         output = output/255.0
         return (output, self.labels) 
 
+
 class NoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict,  
@@ -192,7 +193,7 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         self.twist = ops.ColorTwist(device=self.dali_device)
         self.jitter = ops.Jitter(device=self.dali_device)
         self.warpaffine = ops.WarpAffine(device=self.dali_device)
-
+        
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
@@ -201,6 +202,8 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         
         raw_output = self.resize(output, resize_x=248, resize_y=248)
         raw_output = self.crop(raw_output)
+        raw_output = self.transpose(raw_output)
+        raw_output = raw_output/255.0
 
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
@@ -211,10 +214,12 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         s = fn.random.uniform(range=(0.5, 1.5)) 
         c = fn.random.uniform(range=(0.5, 1.5))  
         b = fn.random.uniform(range=(0.875, 1.125)) 
-        h = fn.random.uniform(range=(-0.5, 0.5)) 
+        h = fn.random.uniform(range=(-0.5, 0.5))
         output = self.twist(output, saturation=s, contrast=c, brightness=b, hue=h)
         output = self.jitter(output)
-        output = self.warpaffine(output)
+        transform = fn.external_source(batch=False, source=dali_random_transform)
+        p =  fn.random.uniform(range=(-0.5, 0.5))
+        output = self.warpaffine(output, matrix=transform)
         output = self.transpose(output)
         output = output/255.0
         return (raw_output, output, self.labels)
