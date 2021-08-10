@@ -179,7 +179,8 @@ def preprocess(image):
     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, cv2.BORDER_REPLICATE)
     
     transform = A.Compose([      
-                    A.Resize(224, 224),  # 變形                                                     
+                    A.Resize(248, 248),  # 變形
+                    A.Crop(224, 224),
                     ToTensorV2()
     ])
     return transform(image=image)['image']/255.0

@@ -92,10 +92,17 @@ class BasicCustomPipeline(Pipeline):
         self.phase = phase
 
     def define_graph(self):
-        pass
+        print('test')
+        self.jpegs, self.labels = self.input() 
+        output = self.decode(self.jpegs)
+        output = fn.python_function(output, function=dali_custom_func)
+        output = self.resize(output, size=(248.0, 248.0))
+        output = self.crop(output)
+        output = self.transpose(output)
+        output = output/255.0
+        return (output, self.labels) 
 
-
-class AddRotatePipeline(BasicCustomPipeline):
+class AddRotateGrayPipeline(BasicCustomPipeline):
     def __init__(self, 
             image_paths, 
             labels, 
@@ -112,19 +119,41 @@ class AddRotatePipeline(BasicCustomPipeline):
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
-        if 'gray' in MCFG.model_type:
-            output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
-        if self.phase == 'train':
-            w = fn.random.uniform(range=(224.0, 320.0))
-            h = fn.random.uniform(range=(224.0, 320.0))        
-            output = self.resize(output, resize_x=w, resize_y=h)        
-        else:
-            output = self.resize(output, size=(248.0, 248.0))
+        output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
+        w = fn.random.uniform(range=(224.0, 320.0))
+        h = fn.random.uniform(range=(224.0, 320.0))        
+        output = self.resize(output, resize_x=w, resize_y=h)                
         output = self.crop(output)        
         output = self.rotate(output, angle=angle)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels)
+
+class AddWaterPipeline(BasicCustomPipeline):
+    def __init__(self, 
+            image_paths, 
+            labels, 
+            batch_size=DCFG.batch_size, 
+            num_workers=DCFG.num_workers, 
+            phase='train', 
+            device_id=0
+        ):        
+        super().__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)
+        self.water = ops.Water(device=self.dali_device)  
+
+    def define_graph(self):
+        angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
+        self.jpegs, self.labels = self.input() # (name='r')
+        output = self.decode(self.jpegs)
+        output = fn.python_function(output, function=dali_custom_func)
+        w = fn.random.uniform(range=(224.0, 320.0))
+        h = fn.random.uniform(range=(224.0, 320.0))        
+        output = self.resize(output, resize_x=w, resize_y=h)        
+        output = self.crop(output)        
+        output = self.water(output)
+        output = self.transpose(output)
+        output = output/255.0
+        return (output, self.labels) 
 
 class NoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
@@ -137,23 +166,28 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         ):        
         super().__init__(batch_size, num_workers, device_id, exec_async=False, exec_pipelined=False, seed=42)
         self.rotate = ops.Rotate(device=self.dali_device)  
-        self.gaussian_blur = ops.
-        self.jitter
+        self.gaussian_blur = ops.GaussianBlur(device=self.dali_device)
+        self.twist = ops.ColorTwist(device=self.dali_device)
+        self.jitter = ops.Jitter(device=self.dali_device)
+
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
-        if 'gary' in MCFG.model_type:
-            output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
-        if self.phase == 'train':
-            w = fn.random.uniform(range=(224.0, 320.0))
-            h = fn.random.uniform(range=(224.0, 320.0))        
-            output = self.resize(output, resize_x=w, resize_y=h)        
-        else:
-            output = self.resize(output, size=(248.0, 248.0))
+        output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)     
+        w = fn.random.uniform(range=(224.0, 320.0))
+        h = fn.random.uniform(range=(224.0, 320.0))        
+        output = self.resize(output, resize_x=w, resize_y=h)        
         output = self.crop(output)        
         output = self.rotate(output, angle=angle)
+        output = self.gaussian_blur(output)
+        s = fn.random.uniform(range=(0.5, 1.5)) 
+        c = fn.random.uniform(range=(0.5, 1.5))  
+        b = fn.random.uniform(range=(0.875, 1.125)) 
+        h = fn.random.uniform(range=(-0.5, 0.5)) 
+        output = self.twist(output, saturation=s, contrast=c, brightness=b, hue=h)
+        output = self.jitter(output)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels)
@@ -216,10 +250,9 @@ def get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_use
         train_dataset = Pipeline(train_input_dict['path'], train_input_dict['int_label'])
         valid_dataset = Pipeline(valid_input_dict['path'], valid_input_dict['int_label'], phase='valid')
 
-    if data_type == 'noisy_student':
-        if is_dali_used:
-            train_dataset = 
-            valid_dataset = 
+    if data_type == 'noisy_student':    
+            train_dataset = BasicCustomPipeline(train_input_dict['path'], train_input_dict['int_label'])
+            # valid_dataset = 
     
     return train_dataset, valid_dataset
 

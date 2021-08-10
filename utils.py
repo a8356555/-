@@ -15,6 +15,7 @@ import torch
 
 class ImageReader:
     """A class of methods involving in image reading and showing"""
+    __slots__ = []
     @classmethod
     def read_image_pil(cls, path):
         img = Image.open(path)
@@ -101,6 +102,7 @@ class ImageReader:
 
 class FolderHandler:
     """A class of methods involving in folder copying, deleting and creating the desired folder if it is not existing"""
+    __slots__ = []
     @classmethod
     def copyfolder(cls, src, dst, symlinks=False, ignore=None):
         """Copy entire folder from src to dst"""
@@ -165,6 +167,7 @@ class FolderHandler:
 
 class FileHandler:
     """A class of methods involving in file operations such as tarfile, get data from files, make desired files."""
+    __slots__ = []
     @classmethod
     def tar_file(cls, file_url):
         import tarfile
@@ -304,6 +307,7 @@ class FileHandler:
 
 class ModelFileHandler:
     """A class of methods involving in model file operations such as getting target checkpoints file path or model version folder    """
+    __slots__ = []
     @classmethod
     def print_existing_model_version_and_info(cls, model_folder):
         """Print out existing model version name and its info"""
@@ -406,6 +410,7 @@ class ModelFileHandler:
 
 class ConfigHandler:
     """A class of methods involving in config operations such as saving config, loading config or changing CFG"""
+    __slots__ = []
     @classmethod
     def _make_config(cls, CFGs):
         DCFG, MCFG, OCFG, NS = None, None, None, None
@@ -564,6 +569,7 @@ class ConfigHandler:
 
 class NoisyStudentDataHandler:
     """A class of methods handling noisy student architecture data"""
+    __slots__ = []
     @classmethod
     def save_pseudo_label_to_txt(cls, pseudo_labels, pseudo_label_txt_path):
         with open(pseudo_label_txt_path, 'w') as out_file:
@@ -604,6 +610,7 @@ class NoisyStudentDataHandler:
 
 class MetricsHandler:
     """A class of methods handling model metrics (loss/ accuracy)"""
+    __slots__ = []
     @classmethod
     def save_metrics_to_txt(cls, epoch, loss, accuracy, metrics_txt_path):
         with open(metrics_txt_path, 'a') as out_file:
