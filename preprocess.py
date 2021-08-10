@@ -34,6 +34,14 @@ def _custom_opencv(image):
     image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
     return image
 
+def _gray_custom_opencv(image)
+    h, w, c = image.shape
+    dh_half, dw_half = _calculate_dhdw_half(h, w)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) 
+    flag = _get_copyMakeBorder_flag()
+    image = cv2.copyMakeBorder(image, dh_half, dh_half, dw_half, dw_half, flag)
+    return image
+    
 def transform_func(image=None):    
     h = np.random.randint(224, 320)
     w = np.random.randint(224, 320)
@@ -172,7 +180,7 @@ def dali_custom_func(image):
     return func(h, w, dh_half, dw_half, bg, image)
 
 
-def dali_random_transform():
+def dali_warpaffine_transform():
     dst_cx, dst_cy = (200,200)
     src_cx, src_cy = (200,200)
 

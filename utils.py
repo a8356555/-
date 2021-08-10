@@ -322,9 +322,23 @@ class ModelFileHandler:
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
     @classmethod
-    def get_best_model_ckpt(cls):
-        # TODO
-        pass 
+    def get_best_model_ckpt(cls, raw_model_type, root_model_folder):
+        if isinstance(root_model_folder, str):
+            root_model_folder = Path(root_model_folder)
+        model_folder = root_model_folder / raw_model_type
+        assert root_model_folder.exists(), f"target model type not exists, please check model type again {[model_type.name for model_type in root_model_folder.glob('*')]}"
+        
+        version_metrics = []
+        for version_folder in model_folder.glob("*v[0-9]*"): 
+            ckpt_paths = ', '.join([ckpt_path for ckpt_path in version_folder.glob("**/*.ckpt")])
+            metrics_txt_path = version_folder/"metrics.txt"        
+            greatest_metrics = MetricsHandler.get_greatest_metrics_from_txt(metrics_txt_path)
+            loss = float(re.search("loss: [0-9]*.[0-9]*", greatest_metrics).group(0).split(' ')[1])
+            epoch = int(re.search("epoch: [0-9]*", greatest_metrics).group(0).split(' ')[1])
+            version_metrics.append([version_folder, epoch, loss])
+        
+        best_version_folder, best_epoch, _ = sorted(version_metrics, key=lambda elems: elems[2])[-1]
+        return best_version_folder/f"epoch={best_epoch}.ckpt"
 
     @classmethod
     def select_ckpt_file_path(cls, version_folder):

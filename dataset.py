@@ -11,7 +11,7 @@ import nvidia.dali.plugin.pytorch as dalitorch
 from nvidia.dali.plugin.pytorch import DALIClassificationIterator, DALIGenericIterator
 from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
-from .preprocess import transform_func, second_source_transform_func, dali_custom_func, dali_random_transform
+from .preprocess import transform_func, second_source_transform_func, dali_custom_func, dali_warpaffine_transform
 from .utils import ImageReader, NoisyStudentDataHandler
 from .config import DCFG, MCFG
 
@@ -26,7 +26,7 @@ class BasicDataset(Dataset):
     def __init__(self, inp_dict, transform=None):
         self.labels = inp_dict['label']
         self.images = inp_dict['image']
-        self.image_paths = inp_dict['image_paths']
+        self.image_paths = inp_dict['path']
         self.transform = transform
 
     def __len__(self):
@@ -99,7 +99,8 @@ class BasicPipeline(Pipeline):
 
 class BasicCustomPipeline(BasicPipeline):
     def __init__(self, 
-            inp_dict, 
+            inp_dict,
+            custom_func=None,
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
@@ -115,35 +116,38 @@ class BasicCustomPipeline(BasicPipeline):
             exec_pipelined=False, 
             seed=42
             )
+        self.custom_func = custom_func
 
 
     def define_graph(self):
         self.jpegs, self.labels = self.input() 
         output = self.decode(self.jpegs)
-        output = fn.python_function(output, function=dali_custom_func)
+        if self.custom_func:
+            output = fn.python_function(output, function=self.custom_function)
         output = self.resize(output, size=(248.0, 248.0))
         output = self.crop(output)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels)
 
-class AddRotateGrayPipeline(BasicCustomPipeline):
+class AddRotatePipeline(BasicCustomPipeline):
     def __init__(self, 
-            inp_dict,  
+            inp_dict,
+            custom_func=None,  
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
+        super().__init__(inp_dict, custom_function, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.dali_device)  
 
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        output = fn.python_function(output, function=dali_custom_func)
-        output = fn.color_space_conversion(output, image_type=types.RGB, output_type=types.GRAY)
+        if self.custom_func:
+            output = fn.python_function(output, function=self.custom_func)
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)                
@@ -155,20 +159,22 @@ class AddRotateGrayPipeline(BasicCustomPipeline):
 
 class AddWaterPipeline(BasicCustomPipeline):
     def __init__(self, 
-            inp_dict,  
+            inp_dict, 
+            custom_func=None, 
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
+        super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.water = ops.Water(device=self.dali_device)  
 
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        output = fn.python_function(output, function=dali_custom_func)
+        if self.custom_func:
+            output = fn.python_function(output, function=self.custom_func)
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
         output = self.resize(output, resize_x=w, resize_y=h)        
@@ -181,24 +187,28 @@ class AddWaterPipeline(BasicCustomPipeline):
 
 class NoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
-            inp_dict,  
+            inp_dict,
+            custom_func=None,
+            warpaffine_transform=None,
             batch_size=DCFG.batch_size, 
             num_workers=DCFG.num_workers, 
             phase='train', 
             device_id=0
         ):        
-        super().__init__(inp_dict, batch_size, num_workers, phase, device_id)
+        super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.dali_device)  
         self.gaussian_blur = ops.GaussianBlur(device=self.dali_device, window_size=5)
         self.twist = ops.ColorTwist(device=self.dali_device)
         self.jitter = ops.Jitter(device=self.dali_device)
         self.warpaffine = ops.WarpAffine(device=self.dali_device)
-        
+        self.warpaffine_transform = warpaffine_transform
+
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
-        output = fn.python_function(output, function=dali_custom_func)
+        if self.custom_func:
+            output = fn.python_function(output, function=self.custom_func)
         
         raw_output = self.resize(output, resize_x=248, resize_y=248)
         raw_output = self.crop(raw_output)
@@ -219,12 +229,13 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         output = self.jitter(output)
         transform = fn.external_source(batch=False, source=dali_random_transform)
         p =  fn.random.uniform(range=(-0.5, 0.5))
-        output = self.warpaffine(output, matrix=transform)
+        if self.warpaffine_transform:
+            output = self.warpaffine(output, matrix=self.warpaffine_transform)
         output = self.transpose(output)
         output = output/255.0
         return (raw_output, output, self.labels)
 
-class daliModule(pl.LightningDataModule):
+class DaliModule(pl.LightningDataModule):
     def __init__(self, train_pipeline, valid_pipeline):
         super(daliModule, self).__init__()
         self.pip_train = train_pipeline
@@ -276,20 +287,57 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type):
     valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
     return train_input_dict, valid_input_dict, transform_func
 
-def get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
+def get_datasets(
+    train_input_dict, 
+    valid_input_dict,
+    transform_func=None 
+    is_dali_used=DCFG.is_dali_used, 
+    data_type=DCFG.data_type,
+    **kwargs
+    ):
+    """
+    kwargs:
+        dali_custom_func: Optional
+        dali_warpaffine_transform: Optional
+    """
     
-    if is_dali_used:
-        train_dataset = Pipeline(train_input_dict['path'], train_input_dict['int_label'])
-        valid_dataset = Pipeline(valid_input_dict['path'], valid_input_dict['int_label'], phase='valid')
-
+    dali_custom_func,  dali_warpaffine_transform = None, None    
+    if "dali_custom_func" in kwargs.keys():
+        dali_custom_func = kwargs["dali_custom_func"]
+    
+    if "dali_warpaffine_transform" in kwargs.keys():
+        dali_warpaffine_transform = kwargs["dali_warpaffine_transform"]
+    
     if data_type == 'noisy_student':    
-            train_dataset = BasicCustomPipeline(train_input_dict['path'], train_input_dict['int_label'])
-            # valid_dataset = 
-    
+        train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
+        valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
+    elif is_dali_used:
+        train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
+        valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
+    elif data_type == "mixed" or "cleaned" or "2nd":
+        train_dataset = YuShanDataset(train_input_dict, transform_func=transform_func)
+        valid_dataset = YuShanDataset(valid_input_dict, transform_func=transform_func, phase="valid")    
+    else:
+        raise ValueError("Invalid input, please check")
+        
     return train_dataset, valid_dataset
+
+def get_datamodule(train_dataset, valid_dataset, is_dali_used=DCFG.is_dali_used):
+    if is_dali_used:
+        return DaliModule(train_dataset, valid_dataset)
+    else:
+        return YushanDataModule(train_dataset, valid_dataset)
 
 def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
     train_input_dict, valid_input_dict, transform_func = get_input_data_and_transform_func(data_type)
-    train_dataset, valid_dataset = get_datasets(train_input_dict, valid_input_dict, transform_func, is_dali_used=OCFG.is_dali_used, data_type=OCFG.data_type) 
-    datamodule = YushanDataModule(train_dataset, valid_dataset)
+    kwargs = {"dali_custom_func": dali_custom_func, "dali_warpaffine_transform": dali_warpaffine_transform}
+    train_dataset, valid_dataset = get_datasets(
+        train_input_dict, 
+        valid_input_dict,
+        transform_func, 
+        is_dali_used=is_dali_used,
+        data_type=data_type,
+        **kwargs) 
+
+    datamodule = get_datamodule(train_dataset, valid_dataset, is_dali_used=is_dali_used)    
     return datamodule

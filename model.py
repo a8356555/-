@@ -17,32 +17,31 @@ MODEL_BACKBONES = ["eff", "res", "custom"]
 # TODO: decoupling raw_model and Basic Classifier 
 
 def _get_raw_model(
-        model_type=MCFG.model_type, 
+        raw_model_type=MCFG.model_type, 
         is_pretrained=MCFG.is_pretrained,
         **kwargs
     ):    
 
-    if 'noisy_student' in model_type:
-        eff_ver = re.search("[0-9]{1}", model_type).group(0)
+    if 'noisy_student' in raw_model_type:
+        eff_ver = re.search("[0-9]{1}", raw_model_type).group(0)
         dropout_rate = kwargs["dropout_rate"] if "dropout_rate" in kwargs.keys() else NS.dropout_rate
         drop_connect_rate = kwargs["drop_connect_rate"] if "drop_connect_rate" in kwargs.keys() else NS.drop_connect_rate
         raw_model = EfficientNet.from_pretrained(f"efficientnet-b{eff_ver}", dropout_rate=dropout_rate, drop_connect_rate=drop_connect_rate)
-    elif 'eff' in model_type:
-        eff_type = re.search("b[0-7]{1}", model_type).group(0)
+    elif 'eff' in raw_model_type:
+        eff_type = re.search("b[0-7]{1}", raw_model_type).group(0)
         raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
     else: # model in torchvision.models 
-        raw_model = getattr(torchvision.models, model_type)(pretrained=is_pretrained)
+        raw_model = getattr(torchvision.models, raw_model_type)(pretrained=is_pretrained)
     
-    print(f"Get {model_type}!")
+    print(f"Get {raw_model_type}!")
     return raw_model
 
 class BaiscClassifier(pl.LightningModule):
     """Parent Class for all lightning modules"""
-    raw_model_type = MCFG.model_type
-    is_pretrained = MCFG.is_pretrained
-    def __init__(self):
+    def __init__(self, raw_model=None):
         super().__init__()        
-        self.model = _get_raw_model(model_type=self.raw_model_type, is_pretrained=self.is_pretrained)
+        self.model = raw_model
+    
     def forward(self, x):
         return self.model(x)
 
@@ -127,8 +126,8 @@ class BaiscClassifier(pl.LightningModule):
         pass
 
 class ResNetClassifier(BaiscClassifier):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         num_input_fts = self.model.fc.in_features
         self.model.fc = nn.Linear(num_input_fts, DCFG.class_num)        
     
@@ -146,8 +145,8 @@ class ResNetClassifier(BaiscClassifier):
         return params_group
         
 class EfficientClassifier(BaiscClassifier):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         num_input_fts = self.model._fc.in_features
         self.model._fc = nn.Linear(num_input_fts, DCFG.class_num)        
     
@@ -175,8 +174,8 @@ class GrayWrapperModel(nn.Module):
         return self.model(x)
 
 class GrayResClassifier(BaiscClassifier):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         self.model = GrayWrapperModel(self.model)
         num_input_fts = self.model.model.fc.in_features
         self.model.model.fc = nn.Linear(num_input_fts, DCFG.class_num)        
@@ -197,8 +196,8 @@ class GrayResClassifier(BaiscClassifier):
         return params_group 
 
 class GrayEffClassifier(BaiscClassifier):
-    def __init__(self):
-        super().__init__()        
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         self.model = GrayWrapperModel(self.model)    
         num_input_fts = self.model.model._fc.in_features
         self.model.model._fc = nn.Linear(num_input_fts, DCFG.class_num)        
@@ -228,8 +227,8 @@ class CustomModel(nn.Module):
         pass
 
 class CustomModelClassifier(BaiscClassifier):
-    def __init__(self):
-        super.__init__()
+    def __init__(self, raw_model):
+        super.__init__(raw_model)
         self.model = CustomModel()
         pass
         # set custom model architecture
@@ -245,8 +244,8 @@ class CustomModelClassifier(BaiscClassifier):
 # ------------------
 
 class DaliEffClassifier(EfficientClassifier):    
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         self.validation_epoch_end = self.validation_epoch_end_wrapper(self.validation_epoch_end)
 
     def validation_epoch_end_wrapper(self, func):
@@ -261,8 +260,8 @@ class DaliEffClassifier(EfficientClassifier):
     
 
 class NoisyStudentDaliEffClassifier(DaliEffClassifier):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
         self.teacher_model = None
 
     def set_teacher_model(self, teacher_model):
@@ -315,8 +314,8 @@ class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
             block 10-15: lr/10
             tail layer: lr
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, raw_model):
+        super().__init__(raw_model)
 
     def _get_params_group(self):
         tail_params_id = list(map(id, self.model._fc.parameters())) + \
@@ -341,27 +340,34 @@ def get_model(
         is_pretrained=MCFG.is_pretrained,
         model_class_name=MCFG.model_class_name,
         ckpt_path=MCFG.ckpt_path, 
-        is_continued_training=MCFG.is_continued_training,    
+        is_continued_training=MCFG.is_continued_training,
         **kwargs
     ):
     """
     Arguments:
         classifier_name: str, full classifer class name        
-    """     
+    """
     g = globals().copy()
     model_class_names = [k for k in g.keys() if not k.startswith('_') and 'Classifier' in k]
     assert model_class_name in model_class_names, f"Wrong classifier class name, should be one of {model_class_names}"
     ModelClass = g[model_class_name]        
     
-    BaiscClassifier.is_pretrained = is_pretrained
-    BaiscClassifier.raw_model_type = raw_model_type
-
-    model = ModelClass.load_from_checkpoint(ckpt_path) if is_continued_training or ckpt_path else ModelClass()
+    raw_model = _get_raw_model(raw_model_type=raw_model_type, is_pretrained=is_pretrained)
+    if is_continued_training or ckpt_path:
+        print(f"load from checkpoint {ckpt_path}")
+        model = ModelClass.load_from_checkpoint(ckpt_path, **{"raw_model": raw_model})
+    else: 
+        model = ModelClass(raw_model)
     return model    
 
-def get_pred_model(model_class_name):
-    # TODO
-    # best_model_ckpt = ModelFileHandler.get_best_model_ckpt()
-    best_model_ckpt = MCFG.ckpt_path
-    model = get_model(model_class_name=model_class_name, ckpt_path=best_model_ckpt, is_continued_training=True)
+def get_pred_model(raw_model_type, best_model_ckpt=None):
+    if best_model_ckpt is None:
+        best_model_ckpt = ModelFileHandler.get_best_model_ckpt(raw_model_type, root_model_folder)
+    raw_model = _get_raw_model(raw_model_type=raw_model_type)
+    if "res" in raw_model_type:
+        model_class_name = "ResNetClassifier"
+    elif re.search("eff|noisy_student|ns") in raw_model_type:
+        model_class_name = "EfficientClassifier"
+    elif 
+    model = get_model(raw_model_type=raw_model_type, model_class_name=model_class_name, ckpt_path=best_model_ckpt)
     return model

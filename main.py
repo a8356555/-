@@ -26,14 +26,18 @@ def make_parser():
     parser = ArgumentParser(
         description="Used if u want to predict on specific test image, if u want to train model please modify config.py")
     parser.add_argument(
-        '--stage', '-s', type=str, default='train',
+        '--stage', '-s', type=str, default='train', required=True,
         help='train or predict')
     parser.add_argument(
-        '--input-path', '-i', type=str,
+        '--input-path', '-i', type=str, 
         help='/path/to/ur/image/or/image/folder')
     parser.add_argument(
-        '--model-class', '-m', type=str, default='EfficientClassifier', required=True,
-        help='')
+        '--model-type', '-m', type=str, default='effcientnet',
+        help='model type use for predicting, eg. efficientnet or noisy_student or resnet')
+    parser.add_argument(
+        '--checkpoint-path', '-c', type=str, default='',
+        help='/path/to/ur/checkpoint/file/path')
+    
 
     return parser
 
