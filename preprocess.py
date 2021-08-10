@@ -119,13 +119,13 @@ def second_source_transform_func(image=None):
 # -------------------------
 # DALI
 # -------------------------
-def _copymakeborder_wrap(h, w, dh_half, dw_half, bg, image):        
+def _copymakeborder_wrap(h, w, dh_half, dw_half, bg, image, np_pkg):        
     # top and bottom
     if h < dh_half:
         top_not_filled = dh_half%h
         bottom_not_filled = -top_not_filled or None # avoid 0 index causes error
         copy_times = int(dh_half/h)
-        bg[top_not_filled:dh_half, dw_half:dw_half+w] = bg[-dh_half:bottom_not_filled, dw_half:dw_half+w] = cupy.vstack((image for _ in range(copy_times)))
+        bg[top_not_filled:dh_half, dw_half:dw_half+w] = bg[-dh_half:bottom_not_filled, dw_half:dw_half+w] = np_pkg.vstack((image for _ in range(copy_times)))
         if top_not_filled:
             bg[0:top_not_filled, dw_half:dw_half+w] = image[bottom_not_filled:, :]
             bg[bottom_not_filled:, dw_half:dw_half+w] = image[0:top_not_filled, :]
@@ -139,7 +139,7 @@ def _copymakeborder_wrap(h, w, dh_half, dw_half, bg, image):
         left_not_filled = dw_half%w 
         right_not_filled = -left_not_filled or None # avoid 0 error
         copy_times = int(dw_half/w)
-        bg[:, left_not_filled:dw_half] = bg[:, -dw_half:right_not_filled] = cupy.hstack((roi for _ in range(copy_times)))
+        bg[:, left_not_filled:dw_half] = bg[:, -dw_half:right_not_filled] = np_pkg.hstack((roi for _ in range(copy_times)))
         if left_not_filled:
             bg[:, 0:left_not_filled] = roi[:, right_not_filled:]
             bg[:, right_not_filled:] = roi[:, 0:left_not_filled]
@@ -147,8 +147,8 @@ def _copymakeborder_wrap(h, w, dh_half, dw_half, bg, image):
         bg[:, 0:dw_half] = roi[:, -dw_half:]
         bg[:, -dw_half:,:] = roi[:, 0:dw_half] 
     return bg
-
-def _copymakeborder_replicate(h, w, dh_half, dw_half, bg, image):
+    
+def _copymakeborder_replicate(h, w, dh_half, dw_half, bg, image, np_pkg):
     bg[0:dh_half, 0:dw_half] = image[0,0]
     bg[0:dh_half, dw_half+w:] = image[0,-1]
     bg[dh_half+h:, 0:dw_half] = image[-1,0]
@@ -156,15 +156,15 @@ def _copymakeborder_replicate(h, w, dh_half, dw_half, bg, image):
 
     bg[0:dh_half, dw_half:dw_half+w] = image[0,:]
     bg[dh_half+h:, dw_half:dw_half+w] = image[-1,:]
-    bg[dh_half:dh_half+h, 0:dw_half] = np.expand_dims(image[:,0], axis=1)
-    bg[dh_half:dh_half+h, dw_half+w:] = np.expand_dims(image[:,-1], axis=1)
+    bg[dh_half:dh_half+h, 0:dw_half] = np_pkg.expand_dims(image[:,0], axis=1)
+    bg[dh_half:dh_half+h, dw_half+w:] = np_pkg.expand_dims(image[:,-1], axis=1)
     return bg
 
 def dali_custom_func(image):
-    print(type(image))
+    np_pkg = np if isinstance(image, np.ndarray) else cupy        
     h, w, c = image.shape
     dh_half, dw_half = _calculate_dhdw_half(h, w)
-    bg = np.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=np.uint8)
+    bg = np_pkg.zeros((h+2*dh_half, w+2*dw_half, 3), dtype=np_pkg.uint8)
     bg[dh_half:dh_half+h, dw_half:dw_half+w, :] = image
 
     if 'replicate' in DCFG.transform_approach:
@@ -173,7 +173,7 @@ def dali_custom_func(image):
         func = _copymakeborder_wrap
     else:
         raise ValueError("Invalid transform approach config")
-    return func(h, w, dh_half, dw_half, bg, image)
+    return func(h, w, dh_half, dw_half, bg, image, np_pkg)
 
 
 def dali_warpaffine_transform():

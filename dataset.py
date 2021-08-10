@@ -86,7 +86,7 @@ class BasicPipeline(Pipeline):
         ):
         super().__init__(batch_size, num_workers, device_id, exec_async=exec_async, exec_pipelined=exec_pipelined, seed=seed)
         random_shuffle = True if phase == 'train' else False
-        self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['int_label'], random_shuffle=random_shuffle, name="Reader")
+        self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['label'], random_shuffle=random_shuffle, name="Reader")
         self.decode = ops.decoders.Image(device="mixed", output_type=types.RGB)
         self.device = 'gpu'
         self.resize = ops.Resize(device=self.device)
@@ -122,6 +122,8 @@ class BasicCustomPipeline(BasicPipeline):
             exec_pipelined=False, 
             seed=42
             )
+        random_shuffle = True if phase == 'train' else False
+        self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['int_label'], random_shuffle=random_shuffle, name="Reader")
         self.python_function = ops.PythonFunction(device=self.device, function=custom_func) if custom_func else None
 
 
@@ -192,7 +194,7 @@ class AddWaterPipeline(BasicCustomPipeline):
         output = output/255.0
         return (output, self.labels) 
 
-class NoisyStudentPipelineTest(BasicCustomPipeline):
+class FasterNoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict,
             custom_func=None,
@@ -246,7 +248,6 @@ class NoisyStudentPipelineTest(BasicCustomPipeline):
         output = output/255.0
         return (raw_output, output, self.labels)
 
-
 class NoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict,
@@ -258,7 +259,6 @@ class NoisyStudentPipeline(BasicCustomPipeline):
             device_id=0
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
-        
         self.fast_resize_crop = ops.FastResizeCropMirror(crop=[224.0, 224.0], mirror=0)
         self.rotate = ops.Rotate(device=self.device)  
         self.gaussian_blur = ops.GaussianBlur(device=self.device, window_size=5)
@@ -328,7 +328,7 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type):
         cleaned_image_paths, cleaned_int_labels,
         valid_image_paths, valid_int_labels) = NoisyStudentDataHandler.get_noisy_student_data(student_iter=NS.student_iter)
         train_image_paths = noised_image_paths + cleaned_image_paths
-    
+        train_int_labels = noised_int_labels + cleaned_int_labels
     else:
         if data_type == 'mixed':
             method_name = 'get_paths_and_int_labels'
@@ -373,8 +373,8 @@ def get_datasets(
         dali_warpaffine_transform = kwargs["dali_warpaffine_transform"]
     
     if data_type == 'noisy_student':    
-        train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
-        valid_dataset = NoisyStudentPipelineTest(valid_input_dict, custom_func=dali_custom_func, phase="valid")
+        train_dataset = FasterNoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
+        valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif is_dali_used:
         train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")

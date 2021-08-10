@@ -279,8 +279,8 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         return raw_x.float(), x.float(), y.long()
 
     def process_batch(self, batch):
-      x, y = batch[0]['data'], batch[0]['label']
-      return x.float(), y.long()
+        x, y = batch[0]['data'], batch[0]['label']
+        return x.float(), y.long()
 
     def training_step(self, train_batch, batch_idx):               
         raw_x, x, y = self.process_batch_train(train_batch)
