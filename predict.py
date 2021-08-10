@@ -4,6 +4,7 @@ import os
 from .model import get_pred_model
 from .preprocess import preprocess
 from .utils import ImageReader, int_label2word
+from .config import MCFG
 
 def prepare_image(image_path, is_image_showed=True):
     test_image = ImageReader.read_image_cv2(image_path)
@@ -21,7 +22,7 @@ def single_predict(image_path, model):
 
 def predict(args):
     device = "cuda:0" if torch.cuda.is_available() and args.is_gpu_used else "cpu"
-    model = get_pred_model(args.model_type, best_ckpt_path=args.checkpoint_path)
+    model = get_pred_model(args.model_type, MCFG.root_model_folder, target_metric=args.target_metric, best_ckpt_path=args.checkpoint_path)
     model.to(device)
     model.eval()
     assert os.path.exists(args.input_path)

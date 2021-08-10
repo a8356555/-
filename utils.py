@@ -295,8 +295,9 @@ class FileHandler:
         clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
+
 class ModelFileHandler:
-    """A class of methods involving in model file operations such as getting target checkpoints file path or model version folder    """
+    """A class of methods involving in model checkpoint files, model metrics, model folder"""
     __slots__ = []
     @classmethod
     def delete_useless_model_folder(cls, root_folder="/content/gdrive/MyDrive/SideProject/YuShanCompetition/model"):        
@@ -312,7 +313,46 @@ class ModelFileHandler:
                     if deleter_cond:
                         FolderHandler.delete_useless_folder(version_folder)
                     
-                    
+    @classmethod
+    def get_best_metrics_record(cls, folder, target_metric="val_loss_epoch", record_num=0):
+        """Get best metrics from tensorboard files
+        Arguments:
+            target_metric: str, "val_epoch_acc" or "val_loss_epoch"
+            record_num: int, 0 stands for loading all records into memory, may OOM. 1 stands for 1 record
+        """
+        desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_loss_epoch", "val_loss_epoch", "epoch"]
+        
+        def _get_best_target_metric_record(record_list):
+            return sorted(record_list, key=lambda record: record.value)[-1]
+
+        def _get_matched_record(record_list, wall_time):
+            return [record for record in record_list if record.wall_time == wall_time]
+        
+
+        best_target_metrics = []
+        matched_metrics = {k:[] for k in desired_metrics}
+        for path in folder.glob("**/*tfevent*"):
+            ea = event_accumulator.EventAccumulator(str(path), size_guidance={event_accumulator.SCALARS:record_num})
+            ea.Reload()
+            metrics_keys = ea.scalars.Keys()
+            
+            if target_metric in metrics_keys:
+                best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))  
+                for de_mtrc in desired_metrics:
+                    if de_mtrc in metrics_keys:
+                        matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.wall_time)
+                        matched_metrics[de_mtrc].append(matched_record)
+                best_target_metrics.append(best_trgt_mtrc)
+        
+        final_best_trgt_mtrc = _get_best_target_metric_record(best_target_metrics)
+        best_record = ""        
+        for de_mtrc in desired_metrics:
+            final_mtch_rcrd = _get_matched_record(matched_metrics[de_mtrc], final_best_trgt_mtrc.wall_time)            
+            best_record += f"{de_mtrc}: {final_mtch_rcrd.value}, "
+            if de_mtrc == "epoch":
+                epoch = int(final_mtch_rcrd.value)
+        return final_best_trgt_mtrc.value, best_record, epoch
+
 
     @classmethod
     def print_existing_model_version_and_info(cls, model_folder):
@@ -322,29 +362,37 @@ class ModelFileHandler:
             config = ConfigHandler.load_config(version_folder)
             other_setting = config['other_settings'] if config else "No Config"
             ckpt_files = ', '.join([ckpt_path.name for ckpt_path in version_folder.glob("**/*.ckpt")])
-            metrics_txt_path = version_folder/"metrics.txt"        
-            greatest_metrics = MetricsHandler.get_greatest_metrics_from_txt(metrics_txt_path)
-            print_dict[version_folder.name] = (other_setting, ckpt_files, greatest_metrics)
+            _, best_metrics_record, _ = cls.get_best_metrics_record(version_folder)
+            print_dict[version_folder.name] = (other_setting, ckpt_files, best_record)
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
     @classmethod
-    def get_best_model_ckpt(cls, raw_model_type, root_model_folder):
+    def get_best_model_ckpt(cls, raw_model_type, root_model_folder, target_metric="val_epoch_acc"):
+        """
+        Argument:
+            target_metric: str, "val_epoch_acc" or "val_loss_epoch"
+        """
         if isinstance(root_model_folder, str):
             root_model_folder = Path(root_model_folder)
         model_folder = root_model_folder / raw_model_type
-        assert root_model_folder.exists(), f"target model type not exists, please check model type again {[model_type.name for model_type in root_model_folder.glob('*')]}"
+        assert model_folder.exists(), f"target model type not exists, please check model type again {[model_type.name for model_type in root_model_folder.glob('*')]}"
         
         version_metrics = []
         for version_folder in model_folder.glob("*v[0-9]*"): 
             ckpt_paths = ', '.join([ckpt_path for ckpt_path in version_folder.glob("**/*.ckpt")])
-            metrics_txt_path = version_folder/"metrics.txt"        
-            greatest_metrics = MetricsHandler.get_greatest_metrics_from_txt(metrics_txt_path)
-            loss = float(re.search("loss: [0-9]*.[0-9]*", greatest_metrics).group(0).split(' ')[1])
-            epoch = int(re.search("epoch: [0-9]*", greatest_metrics).group(0).split(' ')[1])
-            version_metrics.append([version_folder, epoch, loss])
+            target_metric_value, _, epoch = cls.get_best_metrics_record(version_folder, target_metric=target_metric)            
+            version_metrics.append([target_metric_value, version_folder, epoch])
         
-        best_version_folder, best_epoch, _ = sorted(version_metrics, key=lambda elems: elems[2])[-1]
-        return best_version_folder/f"epoch={best_epoch}.ckpt"
+        _, best_version_folder, best_epoch = sorted(version_metrics, key=lambda elems: elems[0])[-1]
+        best_ckpt_path = best_version_folder/f"epoch={best_epoch}.ckpt"
+        i = 0
+        while 1:
+            i += 1
+            best_ckpt_path = best_version_folder/f"epoch={best_epoch-i}.ckpt"
+            if best_ckpt_path.exists(): break
+            best_ckpt_path = best_version_folder/f"epoch={best_epoch+i}.ckpt"
+            if best_ckpt_path.exists(): break
+        return best_ckpt_path
 
     @classmethod
     def select_ckpt_file_path(cls, version_folder):
@@ -633,25 +681,8 @@ class NoisyStudentDataHandler:
         noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
         FileHandler.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
 
-class MetricsHandler:
-    """A class of methods handling model metrics (loss/ accuracy)"""
-    __slots__ = []
-    @classmethod
-    def save_metrics_to_txt(cls, epoch, loss, accuracy, metrics_txt_path):
-        with open(metrics_txt_path, 'a') as out_file:
-            out_file.write(f"epoch: {epoch}, loss: {loss}, accuracy: {accuracy}")
 
-    @classmethod
-    def get_greatest_metrics_from_txt(cls, metrics_txt_path):
-        if not os.path.exists(metrics_txt_path):            
-            return ""
-        
-        with open(metrics_txt_path) as in_file:
-            lines = in_file.readlines()
-        lines = lines.strip().split(', ')
-        sort_func = lambda line: float(re.search("accuracy: [0-9]*.[0-9]*", line).group(0).split(' ')[1]) 
-        sorted_lines = sorted(lines, key=sort_func)
-        return sorted_lines[-1]   
+
 
 word_classes = FileHandler.get_word_classes_dict()
 

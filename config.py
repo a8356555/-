@@ -3,7 +3,7 @@ from datetime import date
 import torch
 import os
 from pathlib import Path
-from .utils import MetricsHandler, ModelFileHandler, ConfigHandler
+from .utils import ModelFileHandler, ConfigHandler
 
 """
 Please Jump to Bottom to Modify Config

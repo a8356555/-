@@ -361,9 +361,9 @@ def get_model(
     print(f"Model Class: {model.__class__}")
     return model    
 
-def get_pred_model(raw_model_type, best_model_ckpt=None):
+def get_pred_model(raw_model_type, root_model_folder, target_metric="val_loss_epoch", best_model_ckpt=None):
     if best_model_ckpt is None:
-        best_model_ckpt = ModelFileHandler.get_best_model_ckpt(raw_model_type, root_model_folder)
+        best_model_ckpt = ModelFileHandler.get_best_model_ckpt(raw_model_type, root_model_folder, target_metric=target_metric)
     raw_model = _get_raw_model(raw_model_type=raw_model_type)
     if "res" in raw_model_type:
         model_class_name = "ResNetClassifier"
