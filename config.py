@@ -25,7 +25,7 @@ class DCFG:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     is_memory_pinned= True
     
-    batch_size = 128 # batch size
+    batch_size = 80 # batch size
     num_workers = 4 # how many workers for loading data
     is_shuffle = True
     data_type = 'noisy_student' # mixed, cleaned, noisy_student, 2nd
