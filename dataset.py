@@ -343,5 +343,5 @@ def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
         ) 
 
     datamodule = get_datamodule(train_dataset, valid_dataset, is_dali_used=is_dali_used)    
-    print(f"Using dali: {is_dali_used}, module type: {datamodule.__module__}")
+    print(f"Using dali: {is_dali_used}, module type: {datamodule.__class__}")
     return datamodule

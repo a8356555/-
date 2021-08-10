@@ -32,7 +32,7 @@ def _get_raw_model(
         raw_model = EfficientNet.from_pretrained(f"efficientnet-{eff_type}")        
     else: # model in torchvision.models 
         raw_model = getattr(torchvision.models, raw_model_type)(pretrained=is_pretrained)    
-    print(f"Get {raw_model_type}, model type: {model.__module__}")
+    print(f"Get {raw_model_type}, model type: {model.__class__}")
     return raw_model
 
 class BaiscClassifier(pl.LightningModule):
@@ -357,7 +357,7 @@ def get_model(
         model = ModelClass.load_from_checkpoint(ckpt_path, **{"raw_model": raw_model})
     else: 
         model = ModelClass(raw_model)
-    print(f"Model Class: {model.__module__}")
+    print(f"Model Class: {model.__class__}")
     return model    
 
 def get_pred_model(raw_model_type, best_model_ckpt=None):
