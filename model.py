@@ -241,13 +241,57 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
     def __init__(self, teacher_model):
         super().__init__()
         self.teacher_model = teacher_model
-
+        self.teacher.eval()
+        
     def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
 
-    def cross_entropy_loss(self, logits, target_prob):
-        target_prob = _handle_teacher_label_logits(target_prob)
+    def cross_entropy_loss(self, logits, label_logits):
+        target_prob = _handle_teacher_label_logits(label_logits)
         return torch.sum(target_prob*-F.log_softmax(logits))
+    
+    def process_batch_train(self, batch):
+        raw_x, x, y = batch[0]['raw_data'], batch[0]['aug_data'], batch[0]['label'].squeeze(-1)
+        return raw_x.float(), x.float(), y.long()
+
+    def training_step(self, train_batch, batch_idx):               
+        raw_x, x, _ = self.process_batch(train_batch)
+        logits = self.forward(x)
+        label_logits = self.teacher(raw_x)
+        loss = self.cross_entropy_loss(logits, label_logits)        
+        _, y_hat = torch.max(logits, dim=1)
+        running_corrects = torch.sum(y_hat == y)
+        
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
+
+
+class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
+    """Differ lr 
+            block 0-9: lr/100 
+            block 10-15: lr/10
+            tail layer: lr
+    """
+    def __init__(self):
+        super().__init__()
+
+    def _get_params_group(self):
+        tail_params_id = list(map(id, self.model._fc.parameters())) + \
+                          list(map(id, self.model._bn1.parameters())) + \
+                          list(map(id, self.model._conv_head.parameters()))
+        tail_params = filter(lambda p: id(p) in tail_params_id,
+                            self.model.parameters())
+        middle_params_id = list(map(id, self.model._blocks[-6:].parameters()))
+        middle_params = filter(lambda p: id(p) in middle_params_id,
+                            self.model.parameters())
+        base_params = filter(lambda p: id(p) not in middle_params_id + tail_params_id,
+                            self.model.parameters())        
+        params_group = [
+                        {'params': base_params, 'lr': OCFG.lr_group[0]},
+                        {'params': middle_params, 'lr': OCFG.lr_group[1]},
+                        {'params': tail_params, 'lr': OCFG.lr_group[2]}
+        ]                
+        return params_group
 
 def _get_raw_model(
         model_type=MCFG.model_type, 

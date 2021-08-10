@@ -8,7 +8,7 @@ import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 import nvidia.dali.ops as ops
 import nvidia.dali.plugin.pytorch as dalitorch
-from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+from nvidia.dali.plugin.pytorch import DALIClassificationIterator, DALIGenericIterator
 from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
 from .preprocess import transform_func, second_source_transform_func, dali_custom_func
@@ -191,15 +191,20 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         self.gaussian_blur = ops.GaussianBlur(device=self.dali_device, window_size=5)
         self.twist = ops.ColorTwist(device=self.dali_device)
         self.jitter = ops.Jitter(device=self.dali_device)
+        self.warpaffine = ops.WarpAffine(device=self.dali_device)
 
     def define_graph(self):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
         output = fn.python_function(output, function=dali_custom_func)
+        
+        raw_output = self.resize(output, resize_x=248, resize_y=248)
+        raw_output = self.crop(raw_output)
+
         w = fn.random.uniform(range=(224.0, 320.0))
         h = fn.random.uniform(range=(224.0, 320.0))        
-        output = self.resize(output, resize_x=w, resize_y=h)        
+        output = self.resize(output, resize_x=w, resize_y=h)
         output = self.crop(output)        
         output = self.rotate(output, angle=angle)
         output = self.gaussian_blur(output)
@@ -209,9 +214,10 @@ class NoisyStudentPipeline(BasicCustomPipeline):
         h = fn.random.uniform(range=(-0.5, 0.5)) 
         output = self.twist(output, saturation=s, contrast=c, brightness=b, hue=h)
         output = self.jitter(output)
+        output = self.warpaffine(output)
         output = self.transpose(output)
         output = output/255.0
-        return (output, self.labels)
+        return (raw_output, output, self.labels)
 
 class daliModule(pl.LightningDataModule):
     def __init__(self, train_pipeline, valid_pipeline):
@@ -220,8 +226,8 @@ class daliModule(pl.LightningDataModule):
         self.pip_train.build()
         self.pip_valid = valid_pipeline
         self.pip_valid.build()
-        self.train_loader = DALIClassificationIterator(self.pip_train, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
-        self.valid_loader = DALIClassificationIterator(self.pip_valid, reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
+        self.train_loader = DALIGenericIterator(self.pip_train, ["raw_data", "aug_data", "label"] ,reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
+        self.valid_loader = DALIGenericIterator(self.pip_valid, ["data", "label"], reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
     def train_dataloader(self):
         return self.train_loader
         
