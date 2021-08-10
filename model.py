@@ -242,7 +242,7 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         super().__init__()
         self.teacher_model = teacher_model
         self.teacher.eval()
-        
+
     def _handle_teacher_label_logits(self, label_logits):    
         return F.softmax(label_logits / NS.teacher_softmax_temp)
 
@@ -254,17 +254,34 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         raw_x, x, y = batch[0]['raw_data'], batch[0]['aug_data'], batch[0]['label'].squeeze(-1)
         return raw_x.float(), x.float(), y.long()
 
+    def process_batch(self, batch):
+      x, y = batch[0]['data'], batch[0]['label']
+      return x.float(), y.long()
+
     def training_step(self, train_batch, batch_idx):               
-        raw_x, x, _ = self.process_batch(train_batch)
+        raw_x, x, _ = self.process_batch_train(train_batch)
         logits = self.forward(x)
         label_logits = self.teacher(raw_x)
-        loss = self.cross_entropy_loss(logits, label_logits)        
-        _, y_hat = torch.max(logits, dim=1)
-        running_corrects = torch.sum(y_hat == y)
+        loss = self.cross_entropy_loss(logits, label_logits)
+        _, pred = torch.max(logits, dim=1)
+        _, label = torch.max(label_logits, dim=1) 
+        running_corrects = torch.sum(pred == label)
         
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
 
+    def validation_step(self, valid_batch, batch_idx):               
+        x, _ = self.process_batch(valid_batch)
+        logits = self.forward(x)
+        label_logits = self.teacher(raw_x)
+        loss = self.cross_entropy_loss(logits, label_logits)
+        _, pred = torch.max(logits, dim=1)
+        _, label = torch.max(label_logits, dim=1) 
+        running_corrects = torch.sum(pred == label)
+        
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
+    
 
 class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
     """Differ lr 
