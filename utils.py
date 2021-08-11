@@ -296,6 +296,8 @@ class FileHandler:
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
 
+
+
 class ModelFileHandler:
     """A class of methods involving in model checkpoint files, model metrics, model folder"""
     __slots__ = []
@@ -320,13 +322,19 @@ class ModelFileHandler:
             target_metric: str, "val_epoch_acc" or "val_loss_epoch"
             record_num: int, 0 stands for loading all records into memory, may OOM. 1 stands for 1 record
         """
+        if isinstance(folder, str):
+            folder = Path(folder)
+        assert "acc" in target_metric or "loss" in target_metric, "target_metric should be accuracy or loss"
+
         desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_loss_epoch", "val_loss_epoch", "epoch"]
         def _get_best_target_metric_record(record_list):
-            print(record_list)
-            return sorted(record_list, key=lambda record: record.value)[-1]
+            if "acc" in target_metric:
+                return sorted(record_list, key=lambda record: record.value)[0]
+            elif "loss" in target_metric:
+                return sorted(record_list, key=lambda record: record.value)[-1]
 
-        def _get_matched_record(record_list, wall_time):
-            return [record for record in record_list if record.wall_time == wall_time]
+        def _get_matched_record(record_list, step):
+            return [record for record in record_list if record.step == step][-1]
 
 
         best_target_metrics = []
@@ -339,11 +347,10 @@ class ModelFileHandler:
                 best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
                 for de_mtrc in desired_metrics:
                     if de_mtrc in metrics_keys:
-                        print(de_mtrc, ea.scalars.Items(de_mtrc))
-                        matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.wall_time)
+                        matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.step)
                         matched_metrics[de_mtrc].append(matched_record)
                 best_target_metrics.append(best_trgt_mtrc)
-        
+                
         if not best_target_metrics:
             return None, "", -1
         

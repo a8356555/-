@@ -304,9 +304,21 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         _, label = torch.max(label_logits, dim=1) 
         running_corrects = torch.sum(pred == label)
         
+        real_label_corrects = torch.sum(pred == y)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
+        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0], 'real_label_corrects': real_label_corrects}
     
+    def validation_epoch_end(self, outputs):
+        epoch_corrects = sum([x['running_corrects'] for x in outputs])
+        epoch_real_label_corrects = sum([x['real_label_corrects'] for x in outputs])
+        
+        dataset_size = sum([x['batch_size'] for x in outputs])
+        acc = epoch_corrects/dataset_size  
+        loss = sum([x['loss'] for x in outputs])/dataset_size
+        
+        print(f'- val_epoch_acc: {acc}, val_loss: {loss}, real_label_acc: {epoch_real_label_corrects/dataset_size}')
+        self.log('val_epoch_acc', acc)  
+
 
 class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
     """Differ lr 
