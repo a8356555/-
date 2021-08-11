@@ -194,7 +194,7 @@ class AddWaterPipeline(BasicCustomPipeline):
         output = output/255.0
         return (output, self.labels) 
 
-class FasterNoisyStudentPipeline(BasicCustomPipeline):
+class TestNoisyStudentPipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict,
             custom_func=None,
@@ -210,8 +210,8 @@ class FasterNoisyStudentPipeline(BasicCustomPipeline):
         self.phase = phase
         self.python_function = ops.PythonFunction(device="cpu", function=custom_func)
         self.fast_resize_crop = ops.FastResizeCropMirror(crop=[224.0, 224.0], mirror=0)
-        self.rotate = ops.Rotate(device=self.device)  
-        self.gaussian_blur = ops.GaussianBlur(device=self.device, window_size=5)
+        self.rotate = ops.Rotate(device="cpu")
+        self.gaussian_blur = ops.GaussianBlur(device="cpu", window_size=5)
         self.twist = ops.ColorTwist(device=self.device)
         self.jitter = ops.Jitter(device=self.device)
         self.warpaffine_transform = warpaffine_transform
@@ -373,7 +373,7 @@ def get_datasets(
         dali_warpaffine_transform = kwargs["dali_warpaffine_transform"]
     
     if data_type == 'noisy_student':    
-        train_dataset = FasterNoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
+        train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif is_dali_used:
         train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)

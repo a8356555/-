@@ -321,13 +321,13 @@ class ModelFileHandler:
             record_num: int, 0 stands for loading all records into memory, may OOM. 1 stands for 1 record
         """
         desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_loss_epoch", "val_loss_epoch", "epoch"]
-        
         def _get_best_target_metric_record(record_list):
+            print(record_list)
             return sorted(record_list, key=lambda record: record.value)[-1]
 
         def _get_matched_record(record_list, wall_time):
             return [record for record in record_list if record.wall_time == wall_time]
-        
+
 
         best_target_metrics = []
         matched_metrics = {k:[] for k in desired_metrics}
@@ -335,14 +335,17 @@ class ModelFileHandler:
             ea = event_accumulator.EventAccumulator(str(path), size_guidance={event_accumulator.SCALARS:record_num})
             ea.Reload()
             metrics_keys = ea.scalars.Keys()
-            
             if target_metric in metrics_keys:
-                best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))  
+                best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
                 for de_mtrc in desired_metrics:
                     if de_mtrc in metrics_keys:
+                        print(de_mtrc, ea.scalars.Items(de_mtrc))
                         matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.wall_time)
                         matched_metrics[de_mtrc].append(matched_record)
                 best_target_metrics.append(best_trgt_mtrc)
+        
+        if not best_target_metrics:
+            return None, "", -1
         
         final_best_trgt_mtrc = _get_best_target_metric_record(best_target_metrics)
         best_record = ""        
@@ -362,7 +365,7 @@ class ModelFileHandler:
             config = ConfigHandler.load_config(version_folder)
             other_setting = config['other_settings'] if config else "No Config"
             ckpt_files = ', '.join([ckpt_path.name for ckpt_path in version_folder.glob("**/*.ckpt")])
-            _, best_metrics_record, _ = cls.get_best_metrics_record(version_folder)
+            _, best_record, _ = cls.get_best_metrics_record(version_folder)
             print_dict[version_folder.name] = (other_setting, ckpt_files, best_record)
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
@@ -380,8 +383,9 @@ class ModelFileHandler:
         version_metrics = []
         for version_folder in model_folder.glob("*v[0-9]*"): 
             ckpt_paths = ', '.join([ckpt_path for ckpt_path in version_folder.glob("**/*.ckpt")])
-            target_metric_value, _, epoch = cls.get_best_metrics_record(version_folder, target_metric=target_metric)            
-            version_metrics.append([target_metric_value, version_folder, epoch])
+            target_metric_value, best_record, epoch = cls.get_best_metrics_record(version_folder, target_metric=target_metric)            
+            if target_metric_value:
+                version_metrics.append([target_metric_value, version_folder, epoch])
         
         _, best_version_folder, best_epoch = sorted(version_metrics, key=lambda elems: elems[0])[-1]
         best_ckpt_path = best_version_folder/f"epoch={best_epoch}.ckpt"
