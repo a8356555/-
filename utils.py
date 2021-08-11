@@ -333,8 +333,8 @@ class ModelFileHandler:
             elif "loss" in target_metric:
                 return sorted(record_list, key=lambda record: record.value)[-1]
 
-        def _get_matched_record(record_list, step):
-            return [record for record in record_list if record.step == step][-1]
+        def _get_matched_record(record_list, step):            
+            return [record for record in record_list if record.step == step][0]
 
 
         best_target_metrics = []
@@ -357,7 +357,7 @@ class ModelFileHandler:
         final_best_trgt_mtrc = _get_best_target_metric_record(best_target_metrics)
         best_record = ""        
         for de_mtrc in desired_metrics:
-            final_mtch_rcrd = _get_matched_record(matched_metrics[de_mtrc], final_best_trgt_mtrc.wall_time)            
+            final_mtch_rcrd = _get_matched_record(matched_metrics[de_mtrc], final_best_trgt_mtrc.step)            
             best_record += f"{de_mtrc}: {final_mtch_rcrd.value}, "
             if de_mtrc == "epoch":
                 epoch = int(final_mtch_rcrd.value)
