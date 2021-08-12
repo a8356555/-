@@ -373,7 +373,7 @@ def get_datasets(
         dali_warpaffine_transform = kwargs["dali_warpaffine_transform"]
     
     if data_type == 'noisy_student':    
-        train_dataset = FasterNoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
+        train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif is_dali_used:
         train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
