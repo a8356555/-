@@ -328,6 +328,8 @@ class ModelFileHandler:
 
         desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_acc_epoch", "val_acc_epoch", "train_loss_epoch", "val_loss_epoch", "epoch"] # 前兩項為舊紀錄之兼容
         def _get_best_target_metric_record(record_list):
+            print(target_metric)
+            print(sorted(record_list, key=lambda record: record.value))
             if "acc" in target_metric:
                 return sorted(record_list, key=lambda record: record.value)[0]
             elif "loss" in target_metric:
@@ -343,10 +345,10 @@ class ModelFileHandler:
             ea = event_accumulator.EventAccumulator(str(path), size_guidance={event_accumulator.SCALARS:record_num})
             ea.Reload()
             metrics_keys = ea.scalars.Keys()
-            target_metric = [key for key in metrics_keys if re.search("(%s){1}_(%s|epoch){1}_(%s|epoch){1}"%(trn_val, l_acc, l_acc), key)]
-            target_metric = target_metric[0] if target_metric else None
-            if target_metric and ea.scalars.Items(target_metric):
-                best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
+            matched_target_metric = [key for key in metrics_keys if re.search("(%s){1}_(%s){1}_(epoch){1}"%(trn_val, l_acc), key) or re.search("(%s){1}_(epoch){1}_(%s){1}"%(trn_val, l_acc), key)]
+            matched_target_metric = matched_target_metric[0] if matched_target_metric else None
+            if matched_target_metric and ea.scalars.Items(matched_target_metric):
+                best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(matched_target_metric))
                 for de_mtrc in desired_metrics:
                     if de_mtrc in metrics_keys and ea.scalars.Items(de_mtrc):
                         matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.step)
@@ -355,7 +357,7 @@ class ModelFileHandler:
                 
         if not best_target_metrics:
             return None, "", -1
-        
+        print("best_target_metrics: ", best_target_metrics)
         final_best_trgt_mtrc = _get_best_target_metric_record(best_target_metrics)
         best_record = ""        
         for de_mtrc in desired_metrics:
