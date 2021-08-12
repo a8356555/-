@@ -44,7 +44,11 @@ class BaiscClassifier(pl.LightningModule):
             config_dict = { k:v for k, v in CFG.__dict__.items() \
                            if not k.startswith("_") or isinstance(v, (str, list, int, float)) }
             self.save_hyperparameters(config_dict)
-    
+        self.train_total_corrects = 0
+        self.train_total_epoch_size = 0
+        self.val_total_corrects = 0
+        self.val_total_epoch_size = 0
+
     def forward(self, x):
         return self.model(x)
 
@@ -58,41 +62,45 @@ class BaiscClassifier(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):               
         x, y = self.process_batch(train_batch)
         logits = self.forward(x)
-        loss = self.cross_entropy_loss(logits, y)        
-        _, y_hat = torch.max(logits, dim=1)
-        running_corrects = torch.sum(y_hat == y)            
-        
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
+        loss = self.cross_entropy_loss(logits, y)
+        _, y_hat = torch.max(logits, dim=1)        
 
-    def training_epoch_end(self, outputs):
-        epoch_corrects = sum([x['running_corrects'] for x in outputs])
-        dataset_size = sum([x['batch_size'] for x in outputs])
-        acc = epoch_corrects/dataset_size
-        loss = sum([x['loss'] for x in outputs])/dataset_size
-        print(f"current epoch: {self.current_epoch}")
-        print(f"- train_epoch_acc: {acc}, train_loss: {loss}")
-        self.log('train_epoch_acc', acc)
+        self.train_total_corrects += torch.sum(y_hat == y).item()
+        self.train_total_epoch_size += y.shape[0]
+
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss}
+
+    def training_epoch_end(self, outputs):        
+        print(f"current epoch: {self.current_epoch}, total epoch size: {self.train_total_epoch_size}")        
+        loss = sum([x['loss'] for x in outputs])/self.train_total_epoch_size
+        acc = self.train_total_corrects/self.train_total_epoch_size                
+        print(f"- train_acc_epoch: {acc}, train_loss: {loss}")
+        self.log('train_acc_epoch', acc)
+
+        self.train_total_corrects = self.train_total_epoch_size = 0
 
     def validation_step(self, val_batch, batch_idx):              
         x, y = self.process_batch(val_batch)
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         _, y_hat = torch.max(logits, dim=1)
-        running_corrects = torch.sum(y_hat == y)
+        
+        self.val_total_corrects += torch.sum(y_hat == y).item()
+        self.val_total_epoch_size += y.shape[0]
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
-    
-    def validation_epoch_end(self, outputs):
-        epoch_corrects = sum([x['running_corrects'] for x in outputs])
-        dataset_size = sum([x['batch_size'] for x in outputs])
-        acc = epoch_corrects/dataset_size  
-        loss = sum([x['loss'] for x in outputs])/dataset_size
-        
-        print(f'- val_epoch_acc: {acc}, val_loss: {loss}')        
-        self.log('val_epoch_acc', acc)    
+        return {'loss': loss}
 
+    def validation_epoch_end(self, outputs):
+        print(f"current epoch: {self.current_epoch}, total epoch size: {self.val_total_epoch_size}")
+        loss = sum([x['loss'] for x in outputs])/self.val_total_epoch_size
+        acc = self.val_total_corrects/self.val_total_epoch_size                
+        print(f'- val_acc_epoch: {acc}, val_loss: {loss}')        
+        self.log('val_acc_epoch', acc)    
+
+        self.val_total_corrects = self.val_total_epoch_size = 0
+        
     def configure_optimizers(self):
         if OCFG.has_differ_lr:
             params_group = self._get_params_group()
@@ -263,6 +271,7 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
     def __init__(self, raw_model):
         super().__init__(raw_model)
         self.teacher_model = None
+        self.real_label_total_corrects = 0
 
     def set_teacher_model(self, teacher_model):
         self.teacher_model = teacher_model
@@ -289,36 +298,47 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         label_logits = self.teacher_model(raw_x)
         loss = self.cross_entropy_loss(logits, label_logits)
         _, pred = torch.max(logits, dim=1)
-        _, label = torch.max(label_logits, dim=1) 
-        running_corrects = torch.sum(pred == label)
-        
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0]}
+        _, label = torch.max(label_logits, dim=1)         
+                
+        self.train_total_corrects += torch.sum(pred == label).item()
+        self.train_total_epoch_size += y.shape[0]
 
-    def validation_step(self, valid_batch, batch_idx):               
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss}
+
+    def training_epoch_end(self, outputs):        
+        print(f"current epoch: {self.current_epoch}, total epoch size: {self.train_total_epoch_size}")
+        loss = sum([x['loss'] for x in outputs])/self.train_total_epoch_size
+        acc = self.train_total_corrects/self.train_total_epoch_size
+        print(f"- train_acc_epoch: {acc}, train_loss: {loss}")
+        self.log('train_acc_epoch', acc)                
+
+        self.train_total_corrects = self.train_total_epoch_size = 0
+
+    def validation_step(self, val_batch, batch_idx):              
         x, y = self.process_batch(valid_batch)
         logits = self.forward(x)
         label_logits = self.teacher_model(x)
         loss = self.cross_entropy_loss(logits, label_logits)
         _, pred = torch.max(logits, dim=1)
         _, label = torch.max(label_logits, dim=1) 
-        running_corrects = torch.sum(pred == label)
-        
-        real_label_corrects = torch.sum(pred == y)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'loss': loss, 'running_corrects': running_corrects, 'batch_size': y.shape[0], 'real_label_corrects': real_label_corrects}
-    
-    def validation_epoch_end(self, outputs):
-        epoch_corrects = sum([x['running_corrects'] for x in outputs])
-        epoch_real_label_corrects = sum([x['real_label_corrects'] for x in outputs])
-        
-        dataset_size = sum([x['batch_size'] for x in outputs])
-        acc = epoch_corrects/dataset_size  
-        loss = sum([x['loss'] for x in outputs])/dataset_size
-        
-        print(f'- val_epoch_acc: {acc}, val_loss: {loss}, real_label_acc: {epoch_real_label_corrects/dataset_size}')
-        self.log('val_epoch_acc', acc)  
 
+        self.val_total_corrects += torch.sum(pred == label).item()
+        self.real_label_total_corrects += torch.sum(pred == y).item()
+        self.val_total_epoch_size += y.shape[0]
+
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss}
+
+    def validation_epoch_end(self, outputs):
+        print(f"current epoch: {self.current_epoch}, total epoch size: {self.val_total_epoch_size}")
+        loss = sum([x['loss'] for x in outputs])/self.val_total_epoch_size
+        acc = self.val_total_corrects/self.val_total_epoch_size
+        real_label_acc = self.real_label_total_corrects/self.val_total_epoch_size
+        print(f'- val_acc_epoch: {acc}, val_loss: {loss}, real_label_acc_epoch: {}')
+        self.log('val_acc_epoch', acc)   
+                
+        self.val_total_corrects = self.val_total_epoch_size = self.real_label_total_corrects = 0                        
 
 class Differ_lr_Experiment_DaliEffClassifier(DaliEffClassifier):
     """Differ lr 

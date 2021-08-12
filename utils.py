@@ -316,17 +316,17 @@ class ModelFileHandler:
                         FolderHandler.delete_useless_folder(version_folder)
                     
     @classmethod
-    def get_best_metrics_record(cls, folder, target_metric="val_loss_epoch", record_num=0):
+    def get_best_metrics_record(cls, folder, target_metric="val_loss", record_num=0):
         """Get best metrics from tensorboard files
         Arguments:
-            target_metric: str, "val_epoch_acc" or "val_loss_epoch"
+            target_metric: str, "val_acc" or "val_loss"
             record_num: int, 0 stands for loading all records into memory, may OOM. 1 stands for 1 record
         """
         if isinstance(folder, str):
             folder = Path(folder)
         assert "acc" in target_metric or "loss" in target_metric, "target_metric should be accuracy or loss"
 
-        desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_loss_epoch", "val_loss_epoch", "epoch"]
+        desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_acc_epoch", "val_acc_epoch", "train_loss_epoch", "val_loss_epoch", "epoch"] # 前兩項為舊紀錄之兼容
         def _get_best_target_metric_record(record_list):
             if "acc" in target_metric:
                 return sorted(record_list, key=lambda record: record.value)[0]
@@ -336,14 +336,16 @@ class ModelFileHandler:
         def _get_matched_record(record_list, step):            
             return [record for record in record_list if record.step == step][0]
 
-
+        target_metric_keywords = target_metric.split("_")
         best_target_metrics = []
         matched_metrics = {k:[] for k in desired_metrics}
         for path in folder.glob("**/*tfevent*"):
             ea = event_accumulator.EventAccumulator(str(path), size_guidance={event_accumulator.SCALARS:record_num})
             ea.Reload()
             metrics_keys = ea.scalars.Keys()
-            if target_metric in metrics_keys:
+            target_metric = [key for key in metrics_keys if re.search("|".join(target_metric_keywords))]
+            target_metric = target_metric[0] if target_metric else None
+            if target_metric:
                 best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
                 for de_mtrc in desired_metrics:
                     if de_mtrc in metrics_keys:
@@ -377,10 +379,10 @@ class ModelFileHandler:
         print('Existing Versions: \n', json.dumps(print_dict, sort_keys=True, indent=8))
 
     @classmethod
-    def get_best_model_ckpt(cls, raw_model_type, root_model_folder, target_metric="val_epoch_acc"):
+    def get_best_model_ckpt(cls, raw_model_type, root_model_folder, target_metric="val_acc"):
         """
         Argument:
-            target_metric: str, "val_epoch_acc" or "val_loss_epoch"
+            target_metric: str, "val_acc" or "val_loss"
         """
         if isinstance(root_model_folder, str):
             root_model_folder = Path(root_model_folder)
