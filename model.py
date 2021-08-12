@@ -316,7 +316,7 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         self.train_total_corrects = self.train_total_epoch_size = 0
 
     def validation_step(self, val_batch, batch_idx):              
-        x, y = self.process_batch(valid_batch)
+        x, y = self.process_batch(val_batch)
         logits = self.forward(x)
         label_logits = self.teacher_model(x)
         loss = self.cross_entropy_loss(logits, label_logits)
@@ -326,7 +326,6 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         self.val_total_corrects += torch.sum(pred == label).item()
         self.real_label_total_corrects += torch.sum(pred == y).item()
         self.val_total_epoch_size += y.shape[0]
-        print(f"real_label_total_corrects: {real_label_total_corrects}, pred: {pred}, y: {y}")
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss}
@@ -387,7 +386,7 @@ def get_model(
     
     raw_model = _get_raw_model(raw_model_type=raw_model_type, is_pretrained=is_pretrained)
     if is_continued_training or ckpt_path:
-        print(f"load from checkpoint {ckpt_path}")
+        print(f"Load from checkpoint {ckpt_path}")
         model = ModelClass.load_from_checkpoint(ckpt_path, **{"raw_model": raw_model})
     else: 
         model = ModelClass(raw_model)
