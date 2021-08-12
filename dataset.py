@@ -314,7 +314,7 @@ class DaliModule(pl.LightningDataModule):
     def val_dataloader(self):
         return self.valid_loader
 
-def get_input_data_and_transform_func(data_type=DCFG.data_type):
+def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=False):
     """
     Arguments:
         data_type: str, 'mixed' or 'cleaned' or '2nd' or 'noisy_student'
@@ -347,8 +347,13 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type):
         valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image")
     
     print(f"data type: {data_type}, train data numbers: {len(train_image_paths)}, valid data numbers: {len(valid_image_paths)}")
-    train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths, 'int_label': train_int_labels}
-    valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
+    if is_for_testing:
+        train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths[:100], 'int_label': train_int_labels[:100]}
+        valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths[:100], 'int_label': valid_int_labels[:100]}
+    else:
+        train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths, 'int_label': train_int_labels}
+        valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
+
     return train_input_dict, valid_input_dict, transform_function
 
 def get_datasets(
@@ -392,8 +397,8 @@ def get_datamodule(train_dataset, valid_dataset, is_dali_used=DCFG.is_dali_used)
     else:
         return YushanDataModule(train_dataset, valid_dataset)
 
-def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
-    train_input_dict, valid_input_dict, transform_func = get_input_data_and_transform_func(data_type)
+def create_datamodule(is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type, is_for_testing=False):
+    train_input_dict, valid_input_dict, transform_func = get_input_data_and_transform_func(data_type, is_for_testing=is_for_testing)
     kwargs = {"dali_custom_func": dali_custom_func, "dali_warpaffine_transform": dali_warpaffine_transform}
     train_dataset, valid_dataset = get_datasets(
         train_input_dict, 

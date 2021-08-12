@@ -336,19 +336,19 @@ class ModelFileHandler:
         def _get_matched_record(record_list, step):            
             return [record for record in record_list if record.step == step][0]
 
-        target_metric_keywords = target_metric.split("_")
+        trn_val, l_acc = target_metric.split("_")     
         best_target_metrics = []
         matched_metrics = {k:[] for k in desired_metrics}
         for path in folder.glob("**/*tfevent*"):
             ea = event_accumulator.EventAccumulator(str(path), size_guidance={event_accumulator.SCALARS:record_num})
             ea.Reload()
             metrics_keys = ea.scalars.Keys()
-            target_metric = [key for key in metrics_keys if re.search("|".join(target_metric_keywords))]
+            target_metric = [key for key in metrics_keys if re.search("(%s){1}_(%s|epoch){1}_(%s|epoch){1}"%(trn_val, l_acc, l_acc), key)]
             target_metric = target_metric[0] if target_metric else None
             if target_metric:
                 best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
                 for de_mtrc in desired_metrics:
-                    if de_mtrc in metrics_keys:
+                    if de_mtrc in metrics_keys:                    
                         matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.step)
                         matched_metrics[de_mtrc].append(matched_record)
                 best_target_metrics.append(best_trgt_mtrc)
@@ -359,10 +359,12 @@ class ModelFileHandler:
         final_best_trgt_mtrc = _get_best_target_metric_record(best_target_metrics)
         best_record = ""        
         for de_mtrc in desired_metrics:
-            final_mtch_rcrd = _get_matched_record(matched_metrics[de_mtrc], final_best_trgt_mtrc.step)            
-            best_record += f"{de_mtrc}: {final_mtch_rcrd.value}, "
-            if de_mtrc == "epoch":
-                epoch = int(final_mtch_rcrd.value)
+            having_match_metrics = len(matched_metrics[de_mtrc]) > 0
+            if having_match_metrics:
+                final_mtch_rcrd = _get_matched_record(matched_metrics[de_mtrc], final_best_trgt_mtrc.step)
+                best_record += f"{de_mtrc}: {final_mtch_rcrd.value}, "
+                if de_mtrc == "epoch":
+                    epoch = int(final_mtch_rcrd.value)
         return final_best_trgt_mtrc.value, best_record, epoch
 
 

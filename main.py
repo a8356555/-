@@ -29,7 +29,7 @@ def make_parser():
         '--stage', '-s', type=str, default='train', required=True,
         help='train or predict')
     parser.add_argument(
-        '--input-path', '-i', type=str, 
+        '--input-path', '-i', type=str, default='',
         help='/path/to/ur/image/or/image/folder')
     parser.add_argument(
         '--model-type', '-m', type=str, default='effcientnet',
@@ -37,6 +37,10 @@ def make_parser():
     parser.add_argument(
         '--checkpoint-path', '-c', type=str, default='',
         help='/path/to/ur/checkpoint/file/path')
+    parser.add_argument(
+        '--target-metric', '-t', type=str, default='val_loss',
+        help='get model by target metric, "val_loss" or "val_acc')
+    
     
 
     return parser

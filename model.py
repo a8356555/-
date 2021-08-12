@@ -326,6 +326,7 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         self.val_total_corrects += torch.sum(pred == label).item()
         self.real_label_total_corrects += torch.sum(pred == y).item()
         self.val_total_epoch_size += y.shape[0]
+        print(f"real_label_total_corrects: {real_label_total_corrects}, pred: {pred}, y: {y}")
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss}
@@ -335,7 +336,7 @@ class NoisyStudentDaliEffClassifier(DaliEffClassifier):
         loss = sum([x['loss'] for x in outputs])/self.val_total_epoch_size
         acc = self.val_total_corrects/self.val_total_epoch_size
         real_label_acc = self.real_label_total_corrects/self.val_total_epoch_size
-        print(f'- val_acc_epoch: {acc}, val_loss: {loss}, real_label_acc_epoch: {}')
+        print(f'- val_acc_epoch: {acc}, val_loss: {loss}, real_label_acc_epoch: {real_label_acc}')
         self.log('val_acc_epoch', acc)   
                 
         self.val_total_corrects = self.val_total_epoch_size = self.real_label_total_corrects = 0                        
