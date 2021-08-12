@@ -345,10 +345,10 @@ class ModelFileHandler:
             metrics_keys = ea.scalars.Keys()
             target_metric = [key for key in metrics_keys if re.search("(%s){1}_(%s|epoch){1}_(%s|epoch){1}"%(trn_val, l_acc, l_acc), key)]
             target_metric = target_metric[0] if target_metric else None
-            if target_metric:
+            if target_metric and ea.scalars.Items(target_metric):
                 best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(target_metric))
                 for de_mtrc in desired_metrics:
-                    if de_mtrc in metrics_keys:                    
+                    if de_mtrc in metrics_keys and ea.scalars.Items(de_mtrc):
                         matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.step)
                         matched_metrics[de_mtrc].append(matched_record)
                 best_target_metrics.append(best_trgt_mtrc)
