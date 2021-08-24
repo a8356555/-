@@ -53,7 +53,7 @@ class CustomDataset(BasicDataset):
 class YuShanDataset(Dataset):
     def __init__(self, inp_dict, transform=None): 
         super().__init__(inp_dict, transform)    
-        self.labels = inp_dict['int_label']        
+        self.labels = inp_dict['label']        
 
 
 class YushanDataModule(pl.LightningDataModule):
@@ -123,7 +123,6 @@ class BasicCustomPipeline(BasicPipeline):
             seed=42
             )
         random_shuffle = True if phase == 'train' else False
-        self.input = ops.readers.File(files=inp_dict['path'], labels=inp_dict['int_label'], random_shuffle=random_shuffle, name="Reader")
         self.python_function = ops.PythonFunction(device=self.device, function=custom_func) if custom_func else None
 
 
@@ -319,7 +318,7 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=F
     Arguments:
         data_type: str, 'mixed' or 'cleaned' or '2nd' or 'noisy_student'
     """        
-    train_images ,valid_images, train_labels, valid_labels = None, None, None, None
+    train_images ,valid_images = None, None
     train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = None, None, None, None
     
     transform_function = transform_func
@@ -347,16 +346,16 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=F
             kwargs = {}               
             transform_function = second_source_transform_func        
 
-        train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = getattr(FileHandler, method_name)(**kwargs)
+        train_image_paths, train_int_labels, valid_image_paths, valid_int_labels = getattr(FileHandler, method_name)(**kwargs)
         # valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") # get valid image first to speed up training
     
     print(f"data type: {data_type}, train data numbers: {len(train_image_paths)}, valid data numbers: {len(valid_image_paths)}")
     if is_for_testing:
-        train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths[:100], 'int_label': train_int_labels[:100]}
-        valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths[:100], 'int_label': valid_int_labels[:100]}
+        train_input_dict = {'image': train_images, 'label': train_int_labels, 'path': train_image_paths[:100]}
+        valid_input_dict = {'image': valid_images, 'label': valid_int_labels, 'path': valid_image_paths[:100]}
     else:
-        train_input_dict = {'image': train_images, 'label': train_labels, 'path': train_image_paths, 'int_label': train_int_labels}
-        valid_input_dict = {'image': valid_images, 'label': valid_labels, 'path': valid_image_paths, 'int_label': valid_int_labels}
+        train_input_dict = {'image': train_images, 'label': train_int_labels, 'path': train_image_paths}
+        valid_input_dict = {'image': valid_images, 'label': valid_int_labels, 'path': valid_image_paths}
 
     return train_input_dict, valid_input_dict, transform_function
 
