@@ -347,8 +347,6 @@ class ModelFileHandler:
 
         desired_metrics = ["train_epoch_acc", "val_epoch_acc", "train_acc_epoch", "val_acc_epoch", "train_loss_epoch", "val_loss_epoch", "epoch"] # 前兩項為舊紀錄之兼容
         def _get_best_target_metric_record(record_list):
-            print(target_metric)
-            print(sorted(record_list, key=lambda record: record.value))
             if "acc" in target_metric:
                 return sorted(record_list, key=lambda record: record.value)[0]
             elif "loss" in target_metric:
