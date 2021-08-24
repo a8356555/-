@@ -305,13 +305,18 @@ class DaliModule(pl.LightningDataModule):
         self.pip_train.build()
         self.pip_valid = valid_pipeline
         self.pip_valid.build()
-        self.train_loader = DALIGenericIterator(self.pip_train, ["raw_data", "aug_data", "label"] ,reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
+        self.train_loader = DALIGenericIterator(self.pip_train, ["data", "label"] ,reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
         self.valid_loader = DALIGenericIterator(self.pip_valid, ["data", "label"], reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
     def train_dataloader(self):
         return self.train_loader
         
     def val_dataloader(self):
         return self.valid_loader
+
+class NoisyStudentDaliModule(DaliModule):
+    def __init__(self, train_pipeline, valid_pipeline):
+        super().__init__(train_pipeline, valid_pipeline)
+        self.train_loader = DALIGenericIterator(self.pip_train, ["raw_data", "aug_data", "label"] ,reader_name="Reader", last_batch_policy=LastBatchPolicy.PARTIAL, auto_reset=True)
 
 def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=False):
     """
@@ -394,9 +399,11 @@ def get_datasets(
         
     return train_dataset, valid_dataset
 
-def get_datamodule(train_dataset, valid_dataset, is_dali_used=DCFG.is_dali_used):
+def get_datamodule(train_dataset, valid_dataset, is_dali_used=DCFG.is_dali_used, data_type=DCFG.data_type):
     if is_dali_used:
         return DaliModule(train_dataset, valid_dataset)
+    elif data_type == "noisy_student":
+        return NoisyStudentDaliModule(train_dataset, valid_dataset)
     else:
         return YushanDataModule(train_dataset, valid_dataset)
 
