@@ -28,7 +28,7 @@ class DCFG:
     batch_size = 84 # batch size
     num_workers = 4 # how many workers for loading data
     is_shuffle = True
-    data_type = 'noisy_student' # raw, mixed, cleaned, noisy_student, 2nd
+    data_type = 'raw' # raw, mixed, cleaned, noisy_student, 2nd
     transform_approach = "replicate, " # BORDER_TYPE: replicate | wrap, COLOR: gray|,
     is_dali_used = True
     class_num = 801

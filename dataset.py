@@ -12,7 +12,7 @@ from nvidia.dali.plugin.pytorch import DALIClassificationIterator, DALIGenericIt
 from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
 from .preprocess import transform_func, second_source_transform_func, dali_custom_func, dali_warpaffine_transform
-from .utils import ImageReader, NoisyStudentDataHandler
+from .utils import ImageReader, NoisyStudentDataHandler, FileHandler
 from .config import DCFG, MCFG, NS
 
 # TODO: decouple gray, add dali augmentation
