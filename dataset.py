@@ -330,7 +330,11 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=F
         train_image_paths = noised_image_paths + cleaned_image_paths
         train_int_labels = noised_int_labels + cleaned_int_labels
     else:
-        if data_type == 'mixed':
+        if data_type == 'raw':
+            method_name = 'get_paths_and_int_labels'
+            kwargs = {'train_type': 'raw'}
+        
+        elif data_type == 'mixed':
             method_name = 'get_paths_and_int_labels'
             kwargs = {'train_type': 'mixed'}
                     
@@ -344,7 +348,7 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=F
             transform_function = second_source_transform_func        
 
         train_image_paths, valid_image_paths, train_int_labels, valid_int_labels = getattr(FileHandler, method_name)(**kwargs)
-        valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image")
+        # valid_images = ImageReader.get_image_data_mp(valid_image_paths, target="image") # get valid image first to speed up training
     
     print(f"data type: {data_type}, train data numbers: {len(train_image_paths)}, valid data numbers: {len(valid_image_paths)}")
     if is_for_testing:

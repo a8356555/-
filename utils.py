@@ -180,7 +180,7 @@ class FileHandler:
         return paths, labels
 
     @classmethod
-    def get_word_classes_dict(cls, training_data_dict_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/training data dic.txt"):
+    def get_word_classes_dict(cls, training_data_dict_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/training data dic.txt"):
         assert os.path.exists(training_data_dict_path), 'file does not exists or google drive is not connected'
 
         with open(training_data_dict_path, 'r') as file:
@@ -203,16 +203,18 @@ class FileHandler:
     def get_paths_and_int_labels(cls, train_type='mixed', train_txt_path=None, valid_txt_path=None):
         """
         Argument:
-            train_type: str, 'mixed' or 'cleaned' (default 'mixed')
+            train_type: str, 'raw' or 'mixed' or 'cleaned' (default 'mixed')
             train_txt_path: str, "/path/to/your/train/txt" , if this parameter is used then train_type will be ignored
         """        
         if train_txt_path is None:
-            if train_type == 'mixed':
-                train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/train_balanced_images.txt'
+            if train_type == 'raw':
+                train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/raw_train_balanced_images.txt'
+            elif train_type == 'mixed':
+                train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/mixed_train_balanced_images.txt'
             elif train_type == 'cleaned':
-                train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
+                train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/cleaned_train_balanced_images.txt'
 
-        valid_txt_path = valid_txt_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+        valid_txt_path = valid_txt_path or '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/valid_balanced_images.txt'
         train_image_paths, train_int_labels = cls.read_path_and_label_from_txt(train_txt_path)
         valid_image_paths, valid_int_labels = cls.read_path_and_label_from_txt(valid_txt_path)
         return train_image_paths, train_int_labels, valid_image_paths, valid_int_labels
@@ -243,15 +245,32 @@ class FileHandler:
             
         df_all = pd.DataFrame(list(zip(image_paths, labels)), columns = ['path', 'label'])
         return df_all
+    
+    @classmethod
+    def _average_copy_grouped_df_func(cls, gp_df):
+            num = gp_df.shape[0]
+            gp_df = pd.concat([gp_df]*(100//num+1))
+            return gp_df
+    
+    @classmethod
+    def _make_raw_train_data_txt_once(cls):
+        df_all, df_revised, df_checked = cls.load_target_dfs()
+        valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/valid_balanced_images.txt'
+        valid_image_paths, valid_int_labels = cls.read_path_and_label_from_txt(valid_txt_path)
+        df_train_not_null = df_all[~df_all['path'].isin(valid_image_paths)].groupby('label').apply(cls._average_copy_grouped_df_func).reset_index(drop=True).groupby('label').sample(100)
+        df_train_null = df_revised[(df_revised['label'] == 'isnull') & 
+                            (~df_revised['path'].isin(df_valid_null['path']))]
+        df_train = df_train_not_null.append(df_train_null, ignore_index=True)
+
+        raw_train_image_paths, raw_train_int_labels = df_train['path'].to_list(), df_train['int_label'].to_list()
+        
+        raw_train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/raw_train_balanced_images.txt'
+        cls.save_paths_and_labels_as_txt(raw_train_txt_path, raw_train_image_paths, raw_train_int_labels)
 
     @classmethod
     def _make_mixed_train_valid_data_txt_once(cls):
         """Call only once to make half raw half cleaned data txt """
-        def custom_func(gp_df):
-            num = gp_df.shape[0]
-            gp_df = pd.concat([gp_df]*(100//num+1))
-            return gp_df
-
+        
         df_all, df_revised, df_checked = cls.load_target_dfs()
         
         not_null_cond = (df_revised['is_deleted'] == False) & (df_revised['label'] != 'isnull')
@@ -266,7 +285,7 @@ class FileHandler:
         df_train_not_null_revised = df_revised[(not_null_cond) & (~df_revised['path'].isin(valid_image_paths))]        
         
         df_train_not_null = df_train_not_null_raw.append(df_train_not_null_revised, ignore_index=True)
-        df_train_not_null = df_train_not_null.groupby('int_label').apply(custom_func).reset_index(drop=True).groupby('label').sample(100)
+        df_train_not_null = df_train_not_null.groupby('int_label').apply(cls._average_copy_grouped_df_func).reset_index(drop=True).groupby('label').sample(100)
         df_train_null = df_revised[(df_revised['label'] == 'isnull') & 
                                       (~df_revised['path'].isin(df_valid_null['path']))]
 
@@ -274,15 +293,15 @@ class FileHandler:
         
         train_image_paths, train_int_labels = df_train['path'].to_list(), df_train['int_label'].to_list()
 
-        valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+        valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/valid_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(valid_txt_path, valid_image_paths, valid_int_labels)
 
-        train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/train_balanced_images.txt'
+        train_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/mixed_train_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(train_txt_path, train_image_paths, train_int_labels)
 
     @classmethod
     def _make_cleaned_data_once(cls):
-        valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/valid_balanced_images.txt'
+        valid_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/valid_balanced_images.txt'
         valid_image_paths, valid_int_labels = cls.read_path_and_label_from_txt(valid_txt_path)
         df_all, df_revised, df_checked = cls.load_target_dfs()
 
@@ -292,7 +311,7 @@ class FileHandler:
         df_clean_null = df_revised[(~df_revised['path'].isin(valid_image_paths)) & null_cond]
         df_clean = df_clean_null.append(df_clean_not_null, ignore_index=True)
         clean_image_paths, clean_int_labels = df_clean['path'].to_list(), df_clean['int_label'].to_list()
-        clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/cleaned_balanced_images.txt'
+        clean_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/cleaned_train_balanced_images.txt'
         cls.save_paths_and_labels_as_txt(clean_txt_path, clean_image_paths, clean_int_labels)
 
 
@@ -674,7 +693,7 @@ class NoisyStudentDataHandler:
         return pseudo_labels
 
     @classmethod
-    def get_noisy_student_data(cls, student_iter=0, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt"):
+    def get_noisy_student_data(cls, student_iter=0, noised_txt_path="/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/noised_train_balanced_images.txt"):
         noised_labels, cleaned_labels = None, None
 
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
@@ -695,7 +714,7 @@ class NoisyStudentDataHandler:
         noised_image_paths, noised_int_labels = df_noised['path'].to_list(), df_noised['int_label'].to_list()
         noised_image_paths += df_revised_not_used['path'].to_list()
         noised_int_labels += df_revised_not_used['int_label'].to_list()
-        noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/noised_balanced_images.txt'
+        noised_txt_path = '/content/gdrive/MyDrive/SideProject/YuShanCompetition/data_txt/noised_train_balanced_images.txt'
         FileHandler.save_paths_and_labels_as_txt(noised_txt_path, noised_image_paths, noised_int_labels)
 
 
