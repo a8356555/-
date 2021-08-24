@@ -147,7 +147,7 @@ class AddRotatePipeline(BasicCustomPipeline):
             phase='train', 
             device_id=0
         ):        
-        super().__init__(inp_dict, custom_function, batch_size, num_workers, phase, device_id)
+        super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.device)  
         self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
 
