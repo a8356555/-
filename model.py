@@ -72,10 +72,10 @@ class BaiscClassifier(pl.LightningModule):
         return {'loss': loss}
 
     def training_epoch_end(self, outputs):        
-        print(f"current epoch: {self.current_epoch}, total epoch size: {self.train_total_epoch_size}")        
+        print(f"current epoch: {self.current_epoch}")
         loss = sum([x['loss'] for x in outputs])/self.train_total_epoch_size
         acc = self.train_total_corrects/self.train_total_epoch_size                
-        print(f"- train_acc_epoch: {acc}, train_loss: {loss}")
+        print(f"- train_acc_epoch: {acc}, train_loss: {loss}, total epoch size: {self.train_total_epoch_size}")
         self.log('train_acc_epoch', acc)
 
         self.train_total_corrects = self.train_total_epoch_size = 0
@@ -92,11 +92,10 @@ class BaiscClassifier(pl.LightningModule):
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss}
 
-    def validation_epoch_end(self, outputs):
-        print(f"current epoch: {self.current_epoch}, total epoch size: {self.val_total_epoch_size}")
+    def validation_epoch_end(self, outputs):        
         loss = sum([x['loss'] for x in outputs])/self.val_total_epoch_size
         acc = self.val_total_corrects/self.val_total_epoch_size                
-        print(f'- val_acc_epoch: {acc}, val_loss: {loss}')        
+        print(f'- val_acc_epoch: {acc}, val_loss: {loss}, total epoch size: {self.val_total_epoch_size}')        
         self.log('val_acc_epoch', acc)    
 
         self.val_total_corrects = self.val_total_epoch_size = 0
