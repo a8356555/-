@@ -18,7 +18,7 @@ def single_train(model, datamodule, is_for_testing=False, is_user_input_needed=T
         )
     else:
         ConfigHandler.save_config(CFGs, folder=MCFG.target_version_folder, model=model, is_user_input_needed=is_user_input_needed)
-        logger = TensorBoardLogger(MCFG.target_version_folder)
+        logger = TensorBoardLogger(MCFG.root_model_folder, name=MCFG.model_type, version=MCFG.version)
 
         checkpoint_callback = ModelCheckpoint(
             monitor=MCFG.monitor,

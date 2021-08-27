@@ -335,7 +335,7 @@ class ModelFileHandler:
                         FolderHandler.delete_useless_folder(version_folder)
                     
     @classmethod
-    def get_best_metrics_record(cls, folder, target_metric="val_loss", record_num=0):
+    def get_best_metrics_record(cls, folder, target_metric="val_loss", record_num=0, is_process_showed=False):
         """Get best metrics from tensorboard files
         Arguments:
             target_metric: str, "val_acc" or "val_loss"
@@ -363,12 +363,18 @@ class ModelFileHandler:
             ea.Reload()
             metrics_keys = ea.scalars.Keys()
             matched_target_metric = [key for key in metrics_keys if re.search("(%s){1}_(%s){1}_(epoch){1}"%(trn_val, l_acc), key) or re.search("(%s){1}_(epoch){1}_(%s){1}"%(trn_val, l_acc), key)]
-            matched_target_metric = matched_target_metric[0] if matched_target_metric else None
+            matched_target_metric = matched_target_metric[0] if matched_target_metric else None            
+            if is_process_showed:
+                print("matched_target_metric: ", matched_target_metric, ", metrics_keys: ", metrics_keys)
             if matched_target_metric and ea.scalars.Items(matched_target_metric):
                 best_trgt_mtrc = _get_best_target_metric_record(ea.scalars.Items(matched_target_metric))
+                if is_process_showed:
+                    print("matched_target_metric: ", matched_target_metric, ", best_trgt_mtrc: ", best_trgt_mtrc)
                 for de_mtrc in desired_metrics:
                     if de_mtrc in metrics_keys and ea.scalars.Items(de_mtrc):
                         matched_record = _get_matched_record(ea.scalars.Items(de_mtrc), best_trgt_mtrc.step)
+                        if is_process_showed:
+                            print("de_mtrc: ", de_mtrc, ", matched_record: ", matched_record) 
                         matched_metrics[de_mtrc].append(matched_record)
                 best_target_metrics.append(best_trgt_mtrc)
                 
