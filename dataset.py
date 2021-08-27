@@ -50,7 +50,7 @@ class CustomDataset(BasicDataset):
     pass
 
 
-class YuShanDataset(Dataset):
+class YuShanDataset(BasicDataset):
     def __init__(self, inp_dict, transform=None): 
         super().__init__(inp_dict, transform)    
         self.labels = inp_dict['label']        
@@ -63,7 +63,7 @@ class YushanDataModule(pl.LightningDataModule):
         self.valid = valid_dataset
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=DCFG.batch_size, num_workers=DCFG.num_workers, pin_memory=DCFG.is_memory_pinned, shuffle=DCFG.is_shuffle)
+        return DataLoader(self.train, batch_size=DCFG.batch_size, num_workers=DCFG.num_workers, pin_memory=DCFG.is_memory_pinned, shuffle=DCFG.is_shuffled)
         
     def val_dataloader(self):
         return DataLoader(self.valid, batch_size=DCFG.batch_size, num_workers=DCFG.num_workers, pin_memory=DCFG.is_memory_pinned)        
@@ -392,8 +392,8 @@ def get_datasets(
         train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif data_type == "mixed" or "cleaned" or "2nd":
-        train_dataset = YuShanDataset(train_input_dict, transform_func=transform_func)
-        valid_dataset = YuShanDataset(valid_input_dict, transform_func=transform_func, phase="valid")    
+        train_dataset = YuShanDataset(train_input_dict, transform=transform_func)
+        valid_dataset = YuShanDataset(valid_input_dict, transform=transform_func)    
     else:
         raise ValueError("Invalid input, please check")
         
