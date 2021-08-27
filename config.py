@@ -40,8 +40,8 @@ class MCFG:
     # model name / folder name
     model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
     model_class_name = 'DaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
-    other_settings = ''         ### dali | gray |
-    is_continued_training = False         ### 請修改
+    other_settings = 'training on hard example'         ### dali | gray |
+    is_continued_training = True         ### 請修改
     
     # model training setting
     is_pretrained = True        ### 請修改
@@ -75,7 +75,7 @@ class OCFG:
     has_scheduler = False
     schdlr_name = 'OneCycleLR' if has_scheduler else None
     total_steps = (MCFG.max_epochs)*(DCFG.class_num*DCFG.expected_num_per_class//DCFG.batch_size+1) if has_scheduler else None
-    max_lr = [lr*10 for lr in lr_group] if has_scheduler else None
+    max_lr = [lr*10 for lr in lr_group] if has_differ_lr else lr*10
 
 class NS:
     """Config for Noisy Student"""
