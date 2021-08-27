@@ -5,8 +5,10 @@ import pytorch_lightning as pl
 from efficientnet_pytorch import EfficientNet
 import torch
 from torch import nn
+import torch.optim as optim
 import torch.nn.functional as F
 import torchvision
+
 
 from .config import MCFG, DCFG, OCFG, NS
 CFGs = [MCFG, DCFG, OCFG, NS]

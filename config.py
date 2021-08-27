@@ -28,7 +28,7 @@ class DCFG:
     batch_size = 84 # batch size
     num_workers = 4 # how many workers for loading data
     is_shuffle = True
-    data_type = 'raw' # raw, mixed, cleaned, noisy_student, 2nd
+    data_type = 'mixed' # raw, mixed, cleaned, noisy_student, 2nd
     transform_approach = "replicate, " # BORDER_TYPE: replicate | wrap, COLOR: gray|,
     is_dali_used = True
     class_num = 801
@@ -38,7 +38,7 @@ class DCFG:
 class MCFG: 
     """Config for Model"""
     # model name / folder name
-    model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
+    model_type = 'effb4'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
     model_class_name = 'DaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
     other_settings = 'training on hard example'         ### dali | gray |
     is_continued_training = False         ### 請修改
@@ -72,7 +72,7 @@ class OCFG:
     weight_decay = 0                                           ### 請修改
     momentum = 0.9 if optim_name == 'SGD' else 0                    ### 請修改
     
-    has_scheduler = False
+    has_scheduler = True
     schdlr_name = 'OneCycleLR' if has_scheduler else None
     total_steps = (MCFG.max_epochs)*(DCFG.class_num*DCFG.expected_num_per_class//DCFG.batch_size+1) if has_scheduler else None
     max_lr = [lr*10 for lr in lr_group] if has_differ_lr else lr*10
