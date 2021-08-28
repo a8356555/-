@@ -1,0 +1,3 @@
+/content/YuShanAICompetition/deploy_gpu/serialize_engine_from_onnx/CMakeFiles/rebuild_cache.dir
+/content/YuShanAICompetition/deploy_gpu/serialize_engine_from_onnx/CMakeFiles/edit_cache.dir
+/content/YuShanAICompetition/deploy_gpu/serialize_engine_from_onnx/CMakeFiles/trt_serialize.dir
