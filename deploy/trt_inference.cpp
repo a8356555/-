@@ -223,9 +223,8 @@ int main(int argc, char* argv[])
         postProcessResults((float*)buffers[1], output_dims[0], batch_size);
     }
     auto t_end = std::chrono::high_resolution_clock::now();
-    double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-    std::cout << "hi3" << std::endl;
-    std::cout << elapsed_time_ms << std::endl;
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(t_end-t_start);    
+    std::cout << elapsed_time/100 << std::endl;
 
     for (void* buf:buffers)
     {
