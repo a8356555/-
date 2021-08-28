@@ -1,0 +1,5 @@
+/content/YuShanAICompetition/csrc/deploy_gpu/build/CMakeFiles/rebuild_cache.dir
+/content/YuShanAICompetition/csrc/deploy_gpu/build/CMakeFiles/edit_cache.dir
+/content/YuShanAICompetition/csrc/deploy_gpu/build/src/CMakeFiles/rebuild_cache.dir
+/content/YuShanAICompetition/csrc/deploy_gpu/build/src/CMakeFiles/edit_cache.dir
+/content/YuShanAICompetition/csrc/deploy_gpu/build/src/CMakeFiles/trt_inference.dir
