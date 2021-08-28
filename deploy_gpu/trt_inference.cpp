@@ -205,7 +205,7 @@ void buildTRTEngineContextBuffer(
     return;
 }
 
-std::vector<float>* predict(const std::string& engine_path, const std::string& image_path) 
+std::vector<float> predict(const std::string& engine_path, const std::string& image_path) 
 {
     int batch_size = 1;
     nvinfer1::ICudaEngine* engine{nullptr};
@@ -225,7 +225,7 @@ std::vector<float>* predict(const std::string& engine_path, const std::string& i
     {
         cudaFree(buf);
     }
-    return &cpu_output;
+    return cpu_output;
 }
 
 void evaluate_predict_speed(const std::string& engine_path, const std::string& image_path, int test_num)
