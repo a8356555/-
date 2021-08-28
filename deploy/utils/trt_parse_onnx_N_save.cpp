@@ -16,8 +16,8 @@ void log(Severity severity, nvinfer1::AsciiChar const* msg) noexcept override {
 
 void parseOnnxModel(
     const std::string& model_path, 
-    nvinfer1::ICudaEngine** engine, 
-    nvinfer1::IExecutionContext** context)
+    nvinfer1::ICudaEngine*& engine, 
+    nvinfer1::IExecutionContext*& context)
 {
     nvinfer1::IBuilder* builder{nvinfer1::createInferBuilder(gLogger)};
     const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);  
@@ -42,8 +42,8 @@ void parseOnnxModel(
     }
     builder->setMaxBatchSize(1);
     
-    *engine = builder->buildEngineWithConfig(*network, *config);
-    *context = (*engine)->createExecutionContext();
+    engine = builder->buildEngineWithConfig(*network, *config);
+    context = engine->createExecutionContext();
     return;
 }
 
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
  
     nvinfer1::ICudaEngine* engine{nullptr};
     nvinfer1::IExecutionContext* context{nullptr};
-    parseOnnxModel(model_path, &engine, &context);
+    parseOnnxModel(model_path, engine, context);
     std::cout << "Parsing onnx model done" << std::endl;
 
     nvinfer1::IHostMemory *serializedModel = engine->serialize();
