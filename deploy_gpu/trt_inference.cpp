@@ -26,13 +26,10 @@ using namespace cv::cuda;
 using cv::cuda::GpuMat;
 // trt logger
 
-class Logger: public nvinfer1::ILogger {
-public:
-void log(Severity severity, nvinfer1::AsciiChar const* msg) noexcept override {
+void gLogger::log(Severity severity, nvinfer1::AsciiChar const* msg) noexcept override {
         if ((severity == Severity::kERROR) || severity == Severity::kINTERNAL_ERROR)
             std::cout<< msg << "\n";
-    }
-} gLogger;
+}
 
 size_t getSizeByDim(const nvinfer1::Dims& dims)
 {
@@ -45,7 +42,7 @@ size_t getSizeByDim(const nvinfer1::Dims& dims)
 }
 
 
-/*std::vector<std::string> getClassNames(const std::string& imagenet_class)
+std::vector<std::string> getClassNames(const std::string& imagenet_class)
 {
     std::ifstream classes_file(imagenet_classes);
     std::vector<std::string> classes;
@@ -61,7 +58,7 @@ size_t getSizeByDim(const nvinfer1::Dims& dims)
         classes.push_back(class_name);
     }
     return classes;
-}*/
+}
 
 
 
@@ -70,8 +67,8 @@ void preProcessImage(const std::string& image_path, float* gpu_input, const nvin
     if (frame.empty()) {
         std::cerr << "Input image: " << image_path << " load failed\n";
         return;
-    }
-    
+    }    
+    cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
     int h = frame.rows;
     int w = frame.cols;
     int dh_half, dw_half;
@@ -118,18 +115,17 @@ void preProcessImage(const std::string& image_path, float* gpu_input, const nvin
 }
 
 
-void postProcessResults(float* gpu_output, const nvinfer1::Dims& dims, int batch_size)
+void postProcessResults(float* gpu_output, std::vector<float>& cpu_output, const nvinfer1::Dims& dims, int batch_size)
 {
     // auto classes = getClassNames("imagenet_classes.txt");
     int class_num = 801;
-
-    std::vector<float> cpu_output((getSizeByDim(dims)*batch_size));
     cudaMemcpy(cpu_output.data(), gpu_output, cpu_output.size() * sizeof(float), cudaMemcpyDeviceToHost);
         
     // calculate softmax
-    std::transform(cpu_output.begin(), cpu_output.end(), cpu_output.begin(), [](float val){return std::exp(val);});
+    /* std::transform(cpu_output.begin(), cpu_output.end(), cpu_output.begin(), [](float val){return std::exp(val);});
     auto sum = std::accumulate(cpu_output.begin(), cpu_output.end(), 0);
  
+    // calculate indices and sort
     std::vector<int> indices((getSizeByDim(dims)*batch_size));
     std::iota(indices.begin(), indices.end(), 0);
     // order prediction indices by its value
@@ -137,16 +133,16 @@ void postProcessResults(float* gpu_output, const nvinfer1::Dims& dims, int batch
     int i = 0;
     while (cpu_output[indices[i]] / sum > 0.5)
     {
-        /*if ( indices[i] < classes.size() )
+        if ( indices[i] < classes.size() )
         {
             std::cout << "class: " << classes[indices[i]] << " | ";
-        }*/
+        }
      
         if (indices[i] < class_num)
             std::cout << "pred" << indices[i] << " | ";
         std::cout << "confidence: " << 100 * cpu_output[indices[i]] / sum << "% | index: " << indices[i] << "\n";
         ++i;
-    }
+    }*/
     return;
 }
 
@@ -174,26 +170,19 @@ void loadEngine(std::string const& path, nvinfer1::ICudaEngine*& engine)
     return;
 }
 
-int main(int argc, char* argv[])
-{
-    if (argc<3)
-    {
-        std::cerr << "usage " << argv[0] << " engine.trt image.jpg\n";
-        return -1;
-    }
-    
-    std::string engine_path(argv[1]);
-    std::string image_path(argv[2]);
-    int batch_size = 1;
- 
-    nvinfer1::ICudaEngine* engine{nullptr};
-    loadEngine(engine_path, engine);     
-        
-    nvinfer1::IExecutionContext* context = engine->createExecutionContext();
 
-    std::vector<nvinfer1::Dims> input_dims;
-    std::vector<nvinfer1::Dims> output_dims;
-    std::vector<void*> buffers(engine->getNbBindings());
+void buildTRTEngineContextBuffer(
+    int batch_size;
+    const std::string& engine_path, 
+    nvinfer1::ICudaEngine*& engine, 
+    nvinfer1::IExecutionContext*& context, 
+    std::vector<nvinfer1::Dims>& input_dims,
+    std::vector<nvinfer1::Dims>& output_dims,
+    std::vector<void*>& buffers,
+    ) {
+    loadEngine(engine_path, engine);
+    context = engine->createExecutionContext();
+    buffers = std::vector<void*>(engine->getNbBindings());
 
     for (size_t i=0; i < engine->getNbBindings(); ++i)
     {
@@ -213,21 +202,59 @@ int main(int argc, char* argv[])
         std::cerr << "Expect at least one input and one output for network\n";
         return -1;
     }
+    return;
+}
+
+std::vector<float>* predict(const std::string& engine_path, const std::string& image_path) 
+{
+    int batch_size = 1;
+    nvinfer1::ICudaEngine* engine{nullptr};
+    nvinfer1::IExecutionContext* context{nullptr};
+    std::vector<nvinfer1::Dims> input_dims;
+    std::vector<nvinfer1::Dims> output_dims;
+    std::vector<void*> buffers;
+    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers)
+
+    preProcessImage(image_path, (float*)buffers[0], input_dims[0]);
+    context->enqueue(batch_size, buffers.data(), 0, nullptr);
     
- 
+    std::vector<float> cpu_output((getSizeByDim(output_dims[0])*batch_size));        
+    postProcessResults((float*)buffers[1], cpu_output, output_dims[0], batch_size);
+
+    for (void* buf:buffers)
+    {
+        cudaFree(buf);
+    }
+    return &cpu_output;
+}
+
+void evaluate_predict_speed(const std::string& engine_path, const std::string& image_path, int test_num)
+{
+    int batch_size = 1;
+    nvinfer1::ICudaEngine* engine{nullptr};
+    nvinfer1::IExecutionContext* context{nullptr};
+    std::vector<nvinfer1::Dims> input_dims;
+    std::vector<nvinfer1::Dims> output_dims;
+    std::vector<void*> buffers;
+    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers)
+
+    std::vector<float> cpu_output((getSizeByDim(output_dims[0])*batch_size));
+    
+    
     auto t_start = std::chrono::high_resolution_clock::now();
-    for (int i=0; i<100; i++) {
+    for (int i=0; i < test_num; i++) {
         preProcessImage(image_path, (float*)buffers[0], input_dims[0]);
         context->enqueue(batch_size, buffers.data(), 0, nullptr);
-        postProcessResults((float*)buffers[1], output_dims[0], batch_size);
+        
+        postProcessResults((float*)buffers[1], cpu_output, output_dims[0], batch_size);
     }
     auto t_end = std::chrono::high_resolution_clock::now();
-    auto elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count()/100;
+    auto elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count()/test_num;
     std::cout << elapsed_time_ms/1000 << std::endl;
 
     for (void* buf:buffers)
     {
         cudaFree(buf);
-    }   
-    return 0;
+    }
+    return;
 }
