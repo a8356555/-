@@ -46,7 +46,7 @@ stddef.h
 vector
 -
 
-/content/YuShanAICompetition/deploy/utils/trt_parse_onnx_N_save.cpp
+/content/YuShanAICompetition/deploy_gpu/utils/trt_parse_onnx_N_save.cpp
 iostream
 -
 fstream

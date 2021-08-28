@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/content/YuShanAICompetition/deploy/utils/trt_parse_onnx_N_save.cpp" "/content/YuShanAICompetition/deploy/utils/CMakeFiles/trt_serialize.dir/trt_parse_onnx_N_save.cpp.o"
+  "/content/YuShanAICompetition/deploy_gpu/utils/trt_parse_onnx_N_save.cpp" "/content/YuShanAICompetition/deploy_gpu/utils/CMakeFiles/trt_serialize.dir/trt_parse_onnx_N_save.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

@@ -9,4 +9,4 @@ CMakeFiles/trt_serialize.dir/trt_parse_onnx_N_save.cpp.o
  /content/TensorRT-8.0.1.6/include/NvInferRuntimeCommon.h
  /content/TensorRT-8.0.1.6/include/NvInferVersion.h
  /content/TensorRT-8.0.1.6/include/NvOnnxParser.h
- /content/YuShanAICompetition/deploy/utils/trt_parse_onnx_N_save.cpp
+ /content/YuShanAICompetition/deploy_gpu/utils/trt_parse_onnx_N_save.cpp
