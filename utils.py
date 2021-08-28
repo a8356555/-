@@ -23,7 +23,7 @@ class ImageReader:
         return img
 
     @classmethod
-    def read_image_cv2(cls, path):
+    def read_image_RGB_cv2(cls, path):
         """Read and change RGB order"""
         img = cv2.imread(path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -47,7 +47,7 @@ class ImageReader:
     def read_images_and_labels(cls, file_paths, way='cv2'):
         data = []
         if way == 'cv2':
-            data = [[cls.read_image_cv2(path), re.search('[\u4e00-\u9fa5]{1}', path).group(0)] for path in file_paths]                                   
+            data = [[cls.read_image_RGB_cv2(path), re.search('[\u4e00-\u9fa5]{1}', path).group(0)] for path in file_paths]                                   
         else:
             data = [[cls.read_image_pil(path), re.search('[\u4e00-\u9fa5]{1}', path).group(0)] for path in file_paths]
         images, labels = zip(*data)

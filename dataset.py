@@ -37,7 +37,7 @@ class BasicDataset(Dataset):
             image = self.images[index]
         else:
             path = self.image_paths[index]
-            image = ImageReader.read_image_cv2(path)
+            image = ImageReader.read_image_RGB_cv2(path)
         
         label = int(self.labels[index])
         

@@ -7,7 +7,7 @@ from .utils import ImageReader, int_label2word
 from .config import MCFG
 
 def prepare_image(image_path, is_image_showed=True):
-    test_image = ImageReader.read_image_cv2(image_path)
+    test_image = ImageReader.read_image_RGB_cv2(image_path)
     return preprocess(test_image).unsqueeze(0)
     
 def single_predict(image_path, model):
