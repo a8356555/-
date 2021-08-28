@@ -20,16 +20,18 @@
 
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
+#include <inference.h>
 
 using namespace cv;
 using namespace cv::cuda;
 using cv::cuda::GpuMat;
 // trt logger
 
-void gLogger::log(Severity severity, nvinfer1::AsciiChar const* msg) noexcept override {
+void Logger::log(Severity severity, nvinfer1::AsciiChar const* msg) noexcept {
         if ((severity == Severity::kERROR) || severity == Severity::kINTERNAL_ERROR)
             std::cout<< msg << "\n";
 }
+Logger gLogger;
 
 size_t getSizeByDim(const nvinfer1::Dims& dims)
 {
@@ -42,11 +44,11 @@ size_t getSizeByDim(const nvinfer1::Dims& dims)
 }
 
 
-std::vector<std::string> getClassNames(const std::string& imagenet_class)
+std::vector<std::string> getClassNames(const std::string& imagenet_classes)
 {
     std::ifstream classes_file(imagenet_classes);
     std::vector<std::string> classes;
-    if (!classses_file.good())
+    if (!classes_file.good())
     {
         std::cerr << "ERROR: can't read file with classes name. \n";
         return classes;
@@ -172,14 +174,14 @@ void loadEngine(std::string const& path, nvinfer1::ICudaEngine*& engine)
 
 
 void buildTRTEngineContextBuffer(
-    int batch_size;
+    int batch_size,
     const std::string& engine_path, 
     nvinfer1::ICudaEngine*& engine, 
     nvinfer1::IExecutionContext*& context, 
     std::vector<nvinfer1::Dims>& input_dims,
     std::vector<nvinfer1::Dims>& output_dims,
-    std::vector<void*>& buffers,
-    ) {
+    std::vector<void*>& buffers ) 
+{
     loadEngine(engine_path, engine);
     context = engine->createExecutionContext();
     buffers = std::vector<void*>(engine->getNbBindings());
@@ -200,7 +202,7 @@ void buildTRTEngineContextBuffer(
     if (input_dims.empty() || output_dims.empty())
     {
         std::cerr << "Expect at least one input and one output for network\n";
-        return -1;
+        return;
     }
     return;
 }
@@ -213,7 +215,7 @@ std::vector<float> predict(const std::string& engine_path, const std::string& im
     std::vector<nvinfer1::Dims> input_dims;
     std::vector<nvinfer1::Dims> output_dims;
     std::vector<void*> buffers;
-    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers)
+    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers);
 
     preProcessImage(image_path, (float*)buffers[0], input_dims[0]);
     context->enqueue(batch_size, buffers.data(), 0, nullptr);
@@ -236,13 +238,11 @@ void evaluate_predict_speed(const std::string& engine_path, const std::string& i
     std::vector<nvinfer1::Dims> input_dims;
     std::vector<nvinfer1::Dims> output_dims;
     std::vector<void*> buffers;
-    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers)
-
-    std::vector<float> cpu_output((getSizeByDim(output_dims[0])*batch_size));
-    
+    buildTRTEngineContextBuffer(batch_size, engine_path, engine, context, input_dims, output_dims, buffers);
     
     auto t_start = std::chrono::high_resolution_clock::now();
-    for (int i=0; i < test_num; i++) {
+    for (int i=0; i<test_num; i++) {
+        std::vector<float> cpu_output((getSizeByDim(output_dims[0])*batch_size));
         preProcessImage(image_path, (float*)buffers[0], input_dims[0]);
         context->enqueue(batch_size, buffers.data(), 0, nullptr);
         

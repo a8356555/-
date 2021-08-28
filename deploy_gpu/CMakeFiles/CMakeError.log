@@ -53,3 +53,58 @@ Makefile:121: recipe for target 'cmTC_e2786/fast' failed
 make: *** [cmTC_e2786/fast] Error 2
 
 
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_c6fb1/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c6fb1.dir/build.make CMakeFiles/cmTC_c6fb1.dir/build
+make[1]: Entering directory '/content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_c6fb1.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_c6fb1.dir/CheckSymbolExists.c.o   -c /content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_c6fb1
+/usr/local/lib/python2.7/dist-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c6fb1.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC     CMakeFiles/cmTC_c6fb1.dir/CheckSymbolExists.c.o  -o cmTC_c6fb1 
+CMakeFiles/cmTC_c6fb1.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_c6fb1.dir/build.make:86: recipe for target 'cmTC_c6fb1' failed
+make[1]: *** [cmTC_c6fb1] Error 1
+make[1]: Leaving directory '/content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_c6fb1/fast' failed
+make: *** [cmTC_c6fb1/fast] Error 2
+
+File /content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_514a1/fast"
+/usr/bin/make -f CMakeFiles/cmTC_514a1.dir/build.make CMakeFiles/cmTC_514a1.dir/build
+make[1]: Entering directory '/content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_514a1.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_514a1.dir/CheckFunctionExists.c.o   -c /usr/local/lib/python2.7/dist-packages/cmake/data/share/cmake-3.12/Modules/CheckFunctionExists.c
+Linking C executable cmTC_514a1
+/usr/local/lib/python2.7/dist-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_514a1.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_514a1.dir/CheckFunctionExists.c.o  -o cmTC_514a1 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_514a1.dir/build.make:86: recipe for target 'cmTC_514a1' failed
+make[1]: *** [cmTC_514a1] Error 1
+make[1]: Leaving directory '/content/YuShanAICompetition/deploy_gpu/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_514a1/fast' failed
+make: *** [cmTC_514a1/fast] Error 2
+
+

@@ -43,10 +43,10 @@ RM = /usr/local/lib/python2.7/dist-packages/cmake/data/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /content/YuShanAICompetition/deploy
+CMAKE_SOURCE_DIR = /content/YuShanAICompetition/deploy_gpu
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /content/YuShanAICompetition/deploy
+CMAKE_BINARY_DIR = /content/YuShanAICompetition/deploy_gpu
 
 # Include any dependencies generated for this target.
 include CMakeFiles/trt_inference.dir/depend.make
@@ -57,27 +57,42 @@ include CMakeFiles/trt_inference.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/trt_inference.dir/flags.make
 
-CMakeFiles/trt_inference.dir/trt_inference.cpp.o: CMakeFiles/trt_inference.dir/flags.make
-CMakeFiles/trt_inference.dir/trt_inference.cpp.o: trt_inference.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/content/YuShanAICompetition/deploy/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/trt_inference.dir/trt_inference.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/trt_inference.dir/trt_inference.cpp.o -c /content/YuShanAICompetition/deploy/trt_inference.cpp
+CMakeFiles/trt_inference.dir/main.cpp.o: CMakeFiles/trt_inference.dir/flags.make
+CMakeFiles/trt_inference.dir/main.cpp.o: main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/content/YuShanAICompetition/deploy_gpu/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/trt_inference.dir/main.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/trt_inference.dir/main.cpp.o -c /content/YuShanAICompetition/deploy_gpu/main.cpp
 
-CMakeFiles/trt_inference.dir/trt_inference.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/trt_inference.dir/trt_inference.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /content/YuShanAICompetition/deploy/trt_inference.cpp > CMakeFiles/trt_inference.dir/trt_inference.cpp.i
+CMakeFiles/trt_inference.dir/main.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/trt_inference.dir/main.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /content/YuShanAICompetition/deploy_gpu/main.cpp > CMakeFiles/trt_inference.dir/main.cpp.i
 
-CMakeFiles/trt_inference.dir/trt_inference.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/trt_inference.dir/trt_inference.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /content/YuShanAICompetition/deploy/trt_inference.cpp -o CMakeFiles/trt_inference.dir/trt_inference.cpp.s
+CMakeFiles/trt_inference.dir/main.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/trt_inference.dir/main.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /content/YuShanAICompetition/deploy_gpu/main.cpp -o CMakeFiles/trt_inference.dir/main.cpp.s
+
+CMakeFiles/trt_inference.dir/inference.cpp.o: CMakeFiles/trt_inference.dir/flags.make
+CMakeFiles/trt_inference.dir/inference.cpp.o: inference.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/content/YuShanAICompetition/deploy_gpu/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/trt_inference.dir/inference.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/trt_inference.dir/inference.cpp.o -c /content/YuShanAICompetition/deploy_gpu/inference.cpp
+
+CMakeFiles/trt_inference.dir/inference.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/trt_inference.dir/inference.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /content/YuShanAICompetition/deploy_gpu/inference.cpp > CMakeFiles/trt_inference.dir/inference.cpp.i
+
+CMakeFiles/trt_inference.dir/inference.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/trt_inference.dir/inference.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /content/YuShanAICompetition/deploy_gpu/inference.cpp -o CMakeFiles/trt_inference.dir/inference.cpp.s
 
 # Object files for target trt_inference
 trt_inference_OBJECTS = \
-"CMakeFiles/trt_inference.dir/trt_inference.cpp.o"
+"CMakeFiles/trt_inference.dir/main.cpp.o" \
+"CMakeFiles/trt_inference.dir/inference.cpp.o"
 
 # External object files for target trt_inference
 trt_inference_EXTERNAL_OBJECTS =
 
-trt_inference: CMakeFiles/trt_inference.dir/trt_inference.cpp.o
+trt_inference: CMakeFiles/trt_inference.dir/main.cpp.o
+trt_inference: CMakeFiles/trt_inference.dir/inference.cpp.o
 trt_inference: CMakeFiles/trt_inference.dir/build.make
 trt_inference: /usr/local/lib/libopencv_gapi.so.4.5.2
 trt_inference: /usr/local/lib/libopencv_stitching.so.4.5.2
@@ -151,7 +166,7 @@ trt_inference: /usr/local/lib/libopencv_cudaarithm.so.4.5.2
 trt_inference: /usr/local/lib/libopencv_core.so.4.5.2
 trt_inference: /usr/local/lib/libopencv_cudev.so.4.5.2
 trt_inference: CMakeFiles/trt_inference.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/content/YuShanAICompetition/deploy/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable trt_inference"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/content/YuShanAICompetition/deploy_gpu/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable trt_inference"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/trt_inference.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -164,6 +179,6 @@ CMakeFiles/trt_inference.dir/clean:
 .PHONY : CMakeFiles/trt_inference.dir/clean
 
 CMakeFiles/trt_inference.dir/depend:
-	cd /content/YuShanAICompetition/deploy && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /content/YuShanAICompetition/deploy /content/YuShanAICompetition/deploy /content/YuShanAICompetition/deploy /content/YuShanAICompetition/deploy /content/YuShanAICompetition/deploy/CMakeFiles/trt_inference.dir/DependInfo.cmake --color=$(COLOR)
+	cd /content/YuShanAICompetition/deploy_gpu && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /content/YuShanAICompetition/deploy_gpu /content/YuShanAICompetition/deploy_gpu /content/YuShanAICompetition/deploy_gpu /content/YuShanAICompetition/deploy_gpu /content/YuShanAICompetition/deploy_gpu/CMakeFiles/trt_inference.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/trt_inference.dir/depend
 

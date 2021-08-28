@@ -6,5 +6,5 @@ CXX_FLAGS = -Wall   -std=gnu++11
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/content/TensorRT-8.0.1.6/include -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 
+CXX_INCLUDES = -I/content/TensorRT-8.0.1.6/include -I/content/YuShanAICompetition/deploy_gpu -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 
 

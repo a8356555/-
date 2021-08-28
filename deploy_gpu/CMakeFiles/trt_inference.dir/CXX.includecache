@@ -46,7 +46,7 @@ stddef.h
 vector
 -
 
-/content/YuShanAICompetition/deploy/trt_inference.cpp
+/content/YuShanAICompetition/deploy_gpu/inference.cpp
 fstream
 -
 iostream
@@ -86,6 +86,8 @@ opencv2/cudawarping.hpp
 NvInfer.h
 -
 NvOnnxParser.h
+-
+inference.h
 -
 
 /usr/local/cuda/include/builtin_types.h
@@ -1165,4 +1167,12 @@ opencv2/imgproc.hpp
 /usr/local/include/opencv4/opencv2/videoio.hpp
 opencv2/core.hpp
 /usr/local/include/opencv4/opencv2/opencv2/core.hpp
+
+inference.h
+NvInfer.h
+-
+vector
+-
+string
+-
 

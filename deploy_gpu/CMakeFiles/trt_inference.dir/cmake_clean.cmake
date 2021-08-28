@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/trt_inference.dir/trt_inference.cpp.o"
+  "CMakeFiles/trt_inference.dir/main.cpp.o"
+  "CMakeFiles/trt_inference.dir/inference.cpp.o"
   "trt_inference.pdb"
   "trt_inference"
 )

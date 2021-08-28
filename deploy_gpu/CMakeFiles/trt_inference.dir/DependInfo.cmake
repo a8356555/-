@@ -4,13 +4,15 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/content/YuShanAICompetition/deploy/trt_inference.cpp" "/content/YuShanAICompetition/deploy/CMakeFiles/trt_inference.dir/trt_inference.cpp.o"
+  "/content/YuShanAICompetition/deploy_gpu/inference.cpp" "/content/YuShanAICompetition/deploy_gpu/CMakeFiles/trt_inference.dir/inference.cpp.o"
+  "/content/YuShanAICompetition/deploy_gpu/main.cpp" "/content/YuShanAICompetition/deploy_gpu/CMakeFiles/trt_inference.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "/content/TensorRT-8.0.1.6/include"
+  "."
   "/usr/local/cuda/include"
   "/usr/local/include/opencv4"
   )

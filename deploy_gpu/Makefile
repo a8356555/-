@@ -48,10 +48,10 @@ RM = /usr/local/lib/python2.7/dist-packages/cmake/data/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /content/YuShanAICompetition/deploy
+CMAKE_SOURCE_DIR = /content/YuShanAICompetition/deploy_gpu
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /content/YuShanAICompetition/deploy
+CMAKE_BINARY_DIR = /content/YuShanAICompetition/deploy_gpu
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /content/YuShanAICompetition/deploy/CMakeFiles /content/YuShanAICompetition/deploy/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /content/YuShanAICompetition/deploy_gpu/CMakeFiles /content/YuShanAICompetition/deploy_gpu/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /content/YuShanAICompetition/deploy/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /content/YuShanAICompetition/deploy_gpu/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -123,32 +123,59 @@ trt_inference/fast:
 	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/build
 .PHONY : trt_inference/fast
 
-trt_inference.o: trt_inference.cpp.o
+inference.o: inference.cpp.o
 
-.PHONY : trt_inference.o
+.PHONY : inference.o
 
 # target to build an object file
-trt_inference.cpp.o:
-	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/trt_inference.cpp.o
-.PHONY : trt_inference.cpp.o
+inference.cpp.o:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/inference.cpp.o
+.PHONY : inference.cpp.o
 
-trt_inference.i: trt_inference.cpp.i
+inference.i: inference.cpp.i
 
-.PHONY : trt_inference.i
+.PHONY : inference.i
 
 # target to preprocess a source file
-trt_inference.cpp.i:
-	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/trt_inference.cpp.i
-.PHONY : trt_inference.cpp.i
+inference.cpp.i:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/inference.cpp.i
+.PHONY : inference.cpp.i
 
-trt_inference.s: trt_inference.cpp.s
+inference.s: inference.cpp.s
 
-.PHONY : trt_inference.s
+.PHONY : inference.s
 
 # target to generate assembly for a file
-trt_inference.cpp.s:
-	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/trt_inference.cpp.s
-.PHONY : trt_inference.cpp.s
+inference.cpp.s:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/inference.cpp.s
+.PHONY : inference.cpp.s
+
+main.o: main.cpp.o
+
+.PHONY : main.o
+
+# target to build an object file
+main.cpp.o:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/main.cpp.o
+.PHONY : main.cpp.o
+
+main.i: main.cpp.i
+
+.PHONY : main.i
+
+# target to preprocess a source file
+main.cpp.i:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/main.cpp.i
+.PHONY : main.cpp.i
+
+main.s: main.cpp.s
+
+.PHONY : main.s
+
+# target to generate assembly for a file
+main.cpp.s:
+	$(MAKE) -f CMakeFiles/trt_inference.dir/build.make CMakeFiles/trt_inference.dir/main.cpp.s
+.PHONY : main.cpp.s
 
 # Help Target
 help:
@@ -159,9 +186,12 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... trt_inference"
-	@echo "... trt_inference.o"
-	@echo "... trt_inference.i"
-	@echo "... trt_inference.s"
+	@echo "... inference.o"
+	@echo "... inference.i"
+	@echo "... inference.s"
+	@echo "... main.o"
+	@echo "... main.i"
+	@echo "... main.s"
 .PHONY : help
 
 
