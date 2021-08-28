@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream> 
 #include <vector>
 #include <string>
 #include <NvInfer.h>
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
 {
     if (argc<3)
     {
-        std::cerr << "usage " << argv[0] << " model_onnx_path(model.onnx) target_trt_path(model.trt)\n";
+        std::cerr << "usage " << argv[0] << " model_onnx_path(model.onnx) target_engine_path(engine.trt)\n";
         return -1;
     }
     
