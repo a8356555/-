@@ -208,7 +208,6 @@ int main(int argc, char* argv[])
             output_dims.emplace_back(engine->getBindingDimensions(i));
         }
     }
-    std::cout << "hi2" << std::endl;
     if (input_dims.empty() || output_dims.empty())
     {
         std::cerr << "Expect at least one input and one output for network\n";
@@ -223,8 +222,8 @@ int main(int argc, char* argv[])
         postProcessResults((float*)buffers[1], output_dims[0], batch_size);
     }
     auto t_end = std::chrono::high_resolution_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(t_end-t_start);    
-    std::cout << elapsed_time/100 << std::endl;
+    auto elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count()/100;
+    std::cout << elapsed_time_ms/1000 << std::endl;
 
     for (void* buf:buffers)
     {
