@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall   CMakeFiles/trt_serialize.dir/trt_parse_onnx_N_save.cpp.o  -o trt_serialize -Wl,-rpath,/content/TensorRT-8.0.1.6/lib /content/TensorRT-8.0.1.6/lib/libnvcaffe_parser.so /content/TensorRT-8.0.1.6/lib/libnvinfer.so /content/TensorRT-8.0.1.6/lib/libnvinfer_plugin.so /content/TensorRT-8.0.1.6/lib/libnvonnxparser.so /content/TensorRT-8.0.1.6/lib/libnvparsers.so 
