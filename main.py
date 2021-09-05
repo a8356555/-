@@ -24,10 +24,10 @@ def seed_torch(seed=1029):
 
 def make_parser():
     parser = ArgumentParser(
-        description="Used if u want to predict on specific test image, if u want to train model please modify config.py")
+        description="Usage: python3 main.py [-s stage] [-i image_path] [-m model_type] [-c checkpoint_path] [-t target_metric]\n if u want to train model please modify config.py first")
     parser.add_argument(
-        '--stage', '-s', type=str, default='train', required=True,
-        help='train or predict')
+        '--stage', '-s', type=str, default='train', required=True, choices=["train", "predict"]
+        help='train or eval stage')
     parser.add_argument(
         '--input-path', '-i', type=str, default='',
         help='/path/to/ur/image/or/image/folder')
@@ -38,8 +38,8 @@ def make_parser():
         '--checkpoint-path', '-c', type=str, default='',
         help='/path/to/ur/checkpoint/file/path')
     parser.add_argument(
-        '--target-metric', '-t', type=str, default='val_loss',
-        help='get model by target metric, "val_loss" or "val_acc')
+        '--target-metric', '-t', type=str, default='val_loss', choices=["val_loss", "val_acc"]
+        help='target metrics used for evaluating the best model')
     
     
 
