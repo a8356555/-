@@ -24,7 +24,7 @@ def seed_torch(seed=1029):
 
 def make_parser():
     parser = ArgumentParser(
-        description="Usage: python3 main.py [-s stage] [-i image_path] [-m model_type] [-c checkpoint_path] [-t target_metric]\n if u want to train model please modify config.py first")
+        description="Usage: python3 main.py -s stage [-i image_path] [-m model_type] [-c checkpoint_path] [-t target_metric]\n if u want to train model please modify config.py first")
     parser.add_argument(
         '--stage', '-s', type=str, default='train', required=True, choices=["train", "predict"]
         help='train or eval stage')
