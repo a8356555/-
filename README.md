@@ -1,4 +1,5 @@
-# YuShan AI Competition (Chinese Word Classification) (Test Accuracy 90% now)
+# YuShan AI Competition (Chinese Word Classification) 
+Test Accuracy 90% so far
 https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authuser=0#scrollTo=b29Ixxc08uCG
 
 ## Environmental info
