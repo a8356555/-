@@ -1,8 +1,22 @@
-# YuShan AI Competition (Chinese Word Classification) 
+# Table of Contents
+1. [YuShan AI Competition](#yac)
+    1. [Environmental info](#ei)
+    2. [Usage Note](#un)
+    3. [Target](#ta1)
+    4. [Experiment](#ex1)
+    5. [TODO](#todo1)
+2. [Noisy Label Skills & Papers](#nls)
+    1. [Dataset info](#di)
+    2. [Target](#ta1)
+    3. [Papers](#p)
+    4. [Experiment](#ex1)
+    5. [TODO](#todo1)
+# <a name="yac">1. YuShan AI Competition (Chinese Word Classification)
 Test Accuracy 90% so far
+
 https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authuser=0#scrollTo=b29Ixxc08uCG
 
-## Environmental info
+## <a name="ei">Environmental info
     Running on Colab:
         Ubuntu 18.04.5 LTS
         Python 3.7.11
@@ -13,7 +27,7 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
         torch==1.9.0+cu102
         torchvision==0.10.0+cu102
         
-## Usage Note
+## <a name="un">Usage Note
 #### 1. Please check whether you install the following package,        
     pip install pytorch-lightning efficientnet_pytorch cupy-cuda110
     pip install --upgrade --force-reinstall --no-deps albumentations        
@@ -34,7 +48,7 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
         [-c /path/to/your/own/checkpoint/file ] 
         [-t target metric used for evaluating the best model]
 
-## Target
+## <a name="ta1">Target
     a. Be Familiar with Pytorch Lightning 
     
     b. Deploy on flask + gcp using the api provided by the organizer (app on flask should respond in 1 second)
@@ -51,7 +65,7 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
     
     e. Try different augmentation using Dali pipeline including custom python numpy function 
 
-## Test
+## <a name="ex1">Experiment
     a. batch_size + num_thread (The bigger one is not the better one)
         num_thread = 4 or 8 is the fastest (just for this project)
 
@@ -69,7 +83,9 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
     d. read image: pil vs cv2
         讀取時PIL比較快，但那是因為PIL只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
 
-## TODO
+    e. model hyperparameter for training
+    
+## <a name="todo1">TODO
     a. use multi-thread to speed up dataloader
     
     b. Further improve model performance (test accuracy 90% now)
@@ -79,3 +95,11 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
     d. Try to gather more input data (gather real data or use GAN to generate training images)
     
     e. Try to implement noisy label related skills from papers
+
+
+# <a name="nls">2. Noisy Label Skills & Papers
+## <a name="di">Dataset info
+## <a name="ta2">Target
+## <a name="p">Papers
+## <a name="ex2">Experiment
+## <a name="todo2">TODO
