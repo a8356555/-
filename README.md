@@ -35,7 +35,7 @@ https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authus
     pip install pytorch-lightning
     pip install cupy-cuda110 "if not using gpu
 
-#### 2. Please Modify data/model/optimizer config in the bottom if config.py First
+#### 2. Please Modify data/model/optimizer config in config.py First
     a. dcfg: data config
     b. mcfg: model config
     c. ocfg: optimizer config
