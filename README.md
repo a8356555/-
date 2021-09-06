@@ -2,6 +2,10 @@ Experimenting on
 
 https://colab.research.google.com/drive/1_9XwlP7vMmk7C5tZ4Bb-PDSoCeevdOo-#scrollTo=UWss9gCGhiiO
 
+Data checking on
+
+https://colab.research.google.com/drive/1qeCqtGTHLGT2Ha2H7GdWVqKBElVUCcHG
+
 # Table of Contents
 1. [YuShan AI Competition](#yac)
     1. [Environmental info](#ei)
