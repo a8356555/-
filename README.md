@@ -35,10 +35,10 @@ Test Accuracy 90% so far
     pip install pytorch-lightning
     pip install cupy-cuda110 "if not using gpu
 
-#### 2. Please Modify data/model/optimizer config in config.py First
-    a. dcfg: data config
-    b. mcfg: model config
-    c. ocfg: optimizer config
+#### 2. Please Modify data/model/optimizer config in config.py First<br>
+* dcfg: data config<br>
+* mcfg: model config<br>
+* ocfg: optimizer config
 
 #### 3. CLI usage (not tested)
     python3 main.py
@@ -49,49 +49,49 @@ Test Accuracy 90% so far
         [-t target metric used for evaluating the best model]
 
 ## <a name="ta1">Target
-    a. Be Familiar with Pytorch Lightning 
-    
-    b. Deploy on flask + gcp using the api provided by the organizer (app on flask should respond in 1 second)
-    
-    b. Be Familiar with the following training tricks or tools:
-        Tools: Apex, Dali, pytorch profiler, HDF5, 
-        Tricks: different learning rate, learning rate scheduler, gradient check
-        
-    c. Try to speed up training using the following tricks or tools:
-        Tools: Apex, Dali, 
-        (Bottleneck) Data loading: HDF5, LMDB, TFRecord, tmpfs, hyperparameters (batch_size + num_threads), data prefetcher (not worked)
-        
-    d. Try to fine tune on Resnet / EfficientNet (Due to the demand of both accuracy and inference speed)
-    
-    e. Try different augmentation using Dali pipeline including custom python numpy function 
+1. Be Familiar with Pytorch Lightning 
+
+2. Deploy on flask + gcp using the api provided by the organizer (app on flask should respond in 1 second)
+
+3. Be Familiar with the following training tricks or tools:<br>
+    Tools: Apex, Dali, pytorch profiler, HDF5,<br>
+    Tricks: different learning rate, learning rate scheduler, gradient check
+
+4. Try to speed up training using the following tricks or tools:<br>
+    Tools: Apex, Dali,<br>
+    (Bottleneck) Data loading: HDF5, LMDB, TFRecord, tmpfs, hyperparameters (batch_size + num_threads), data prefetcher (not worked)
+
+5. Try to fine tune on Resnet / EfficientNet (Due to the demand of both accuracy and inference speed)
+
+6. Try different augmentation using Dali pipeline including custom python numpy function 
 
 ## <a name="ex1">Experiment
-    a. batch_size + num_thread (The bigger one is not the better one)
-        num_thread = 4 or 8 is the fastest (just for this project)
+1. batch_size + num_thread (The bigger one is not the better one)<br>
+    num_thread = 4 or 8 is the fastest (just for this project)
 
-    b. dataloader: lmdb vs hdf5 vs dali vs raw loading
-        lmdb: 3s/batch (using the most disk storage and more time to save)
-        hdf5: 2s/batch (using many disk storage, and the save time is large when using high compression level)
-        dali: 3s/batch 
-        raw: 4~5s/batch
+2. dataloader: lmdb vs hdf5 vs dali vs raw loading<br>
+    lmdb: 3s/batch (using the most disk storage and more time to save)<br>
+    hdf5: 2s/batch (using many disk storage, and the save time is large when using high compression level)<br>
+    dali: 3s/batch<br>
+    raw: 4~5s/batch<br>
 
-    c. read data: single process vs multi-processing
-        single process: 3m48s / 1000 imgs
-        multi-process: 17s / 1000 imgs
-        Q: why images readed but deleted are still fast to read though not in RAM.
-        
-    d. read image: pil vs cv2
-        讀取時PIL比較快，但那是因為PIL只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
+3. read data: single process vs multi-processing<br>
+    single process: 3m48s / 1000 imgs<br>
+    multi-process: 17s / 1000 imgs<br>
+    Q: why images readed but deleted are still fast to read though not in RAM.
 
-    e. model hyperparameter for training
+4. read image: pil vs cv2<br>
+    讀取時 PIL 比較快，但那是因為 PIL 只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
+
+5. model hyperparameter for training
     
 ## <a name="todo1">TODO
-    a. use multi-thread to speed up dataloader
-    
-    b. Further improve model performance (test accuracy 90% now)
-    
-    c. Try to replace more layers with custom ones
-    
-    d. Try to gather more input data (gather real data or use GAN to generate training images)
-    
-    e. Try to implement noisy label related skills from papers
+1. use multi-thread to speed up dataloader
+
+2. Further improve model performance (test accuracy 90% now)
+
+3. Try to replace more layers with custom ones
+
+4. Try to gather more input data (gather real data or use GAN to generate training images)
+
+5. Try to implement noisy label related skills from papers
