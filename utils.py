@@ -234,7 +234,7 @@ class FileHandler:
 
     @classmethod
     def _make_raw_df_once(cls):
-        root_paths = ['/content/gdrive/MyDrive/SideProject/YuShanTrain', ROOT + '/train']
+        root_paths = [ROOT + '/YuShanTrain', ROOT + '/train']
         image_paths = []
         labels = []
         for root_path in root_paths:
