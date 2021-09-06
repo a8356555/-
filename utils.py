@@ -132,7 +132,7 @@ class FolderHandler:
         print(f"See whether {folder} exists: {os.path.exists(folder)}")
 
     @classmethod
-    def show_folder_structure(cls, root_folder=ROOT + "/model", max_layer=3):
+    def show_folder_structure(cls, root_folder=ROOT+"/model", max_layer=3):
         # TODO
         # prefix components:
         space =  '    '
@@ -182,7 +182,7 @@ class FileHandler:
         return paths, labels
 
     @classmethod
-    def get_word_classes_dict(cls, training_data_dict_path=ROOT + "/data_txt/training data dic.txt"):
+    def get_word_classes_dict(cls, training_data_dict_path=ROOT+"/data_txt/training data dic.txt"):
         assert os.path.exists(training_data_dict_path), 'file does not exists or google drive is not connected'
 
         with open(training_data_dict_path, 'r') as file:
@@ -193,9 +193,9 @@ class FileHandler:
 
     @classmethod
     def load_target_dfs(cls, 
-            df_all_path=ROOT + '/all_data.csv', 
-            df_revised_path=ROOT + '/df_revised.csv', 
-            df_checked_path=ROOT + '/df_checked.csv'):
+            df_all_path=ROOT+'/all_data.csv', 
+            df_revised_path=ROOT+'/df_revised.csv', 
+            df_checked_path=ROOT+'/df_checked.csv'):
         df_all = pd.read_csv(df_all_path)
         df_revised = pd.read_csv(df_revised_path)
         df_checked = pd.read_csv(df_checked_path)
@@ -323,7 +323,7 @@ class ModelFileHandler:
     """A class of methods involving in model checkpoint files, model metrics, model folder"""
     __slots__ = []
     @classmethod
-    def delete_useless_model_folder(cls, root_folder=ROOT + "/model"):        
+    def delete_useless_model_folder(cls, root_folder=ROOT+"/model"):        
         for model_type in os.listdir(root_folder):            
             model_folder = os.path.join(root_folder, model_type)            
             if os.path.isdir(model_folder):
@@ -698,7 +698,7 @@ class NoisyStudentDataHandler:
         return pseudo_labels
 
     @classmethod
-    def get_noisy_student_data(cls, student_iter=0, noised_txt_path=ROOT + "/data_txt/noised_train_balanced_images.txt"):
+    def get_noisy_student_data(cls, student_iter=0, noised_txt_path=ROOT+"/data_txt/noised_train_balanced_images.txt"):
         noised_labels, cleaned_labels = None, None
 
         noised_image_paths, noised_int_labels = FileHandler.read_path_and_label_from_txt(noised_txt_path)
