@@ -20,7 +20,7 @@ Please Jump to Bottom to Modify Config
 # data config
 class DCFG: 
     """Config for Data"""
-    input_path = Path('/content/gdrive/MyDrive/SideProject/YuShanCompetition/train')
+    input_path = Path('/content/gdrive/MyDrive/SideProject/Yushan_AI_Competition/train')
     is_gpu_used = True # use GPU or not
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     is_memory_pinned= True
@@ -56,7 +56,7 @@ class MCFG:
     precision = 16
     monitor = 'val_loss'
 
-    root_model_folder = Path('/content/gdrive/MyDrive/SideProject/YuShanCompetition/model')
+    root_model_folder = Path('/content/gdrive/MyDrive/SideProject/Yushan_AI_Competition/model')
     today = str(date.today())
     ckpt_path = None
     version = None
