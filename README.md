@@ -7,19 +7,13 @@ Data error handling on
 https://colab.research.google.com/drive/1qeCqtGTHLGT2Ha2H7GdWVqKBElVUCcHG
 
 # Table of Contents
-1. [YuShan AI Competition](#yac)
+* [YuShan AI Competition](#yac)
     1. [Environmental info](#ei)
     2. [Usage Note](#un)
     3. [Target](#ta1)
     4. [Experiment](#ex1)
     5. [TODO](#todo1)
-2. [Noisy Label Skills & Papers](#nls)
-    1. [Dataset info](#di)
-    2. [Target](#ta1)
-    3. [Papers](#p)
-    4. [Experiment](#ex1)
-    5. [TODO](#todo1)
-# <a name="yac">1. YuShan AI Competition (Chinese Word Classification)
+# <a name="yac">YuShan AI Competition (Chinese Word Classification)
 Test Accuracy 90% so far
 
 ## <a name="ei">Environmental info
