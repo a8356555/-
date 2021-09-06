@@ -81,7 +81,7 @@ Test Accuracy 90% so far
     Q: why images readed but deleted are still fast to read though not in RAM.
 
 4. read image: pil vs cv2<br>
-    讀取時 PIL 比較快，但那是因為 PIL 只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
+    讀取時PIL比較快，但那是因為PIL只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
 
 5. model hyperparameter for training
     
