@@ -1,3 +1,7 @@
+Experimenting on 
+
+https://colab.research.google.com/drive/1_9XwlP7vMmk7C5tZ4Bb-PDSoCeevdOo-#scrollTo=UWss9gCGhiiO
+
 # Table of Contents
 1. [YuShan AI Competition](#yac)
     1. [Environmental info](#ei)
@@ -13,8 +17,6 @@
     5. [TODO](#todo1)
 # <a name="yac">1. YuShan AI Competition (Chinese Word Classification)
 Test Accuracy 90% so far
-
-https://colab.research.google.com/drive/10aQhKaSnOLVjKQrtCJZSHvvhmnTBmPV5?authuser=0#scrollTo=b29Ixxc08uCG
 
 ## <a name="ei">Environmental info
     Running on Colab:
