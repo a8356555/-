@@ -49,9 +49,9 @@ Test Accuracy 90% so far
         [-t target metric used for evaluating the best model]
 
 ## <a name="ta1">Target
-1. Be Familiar with Pytorch Lightning 
+1. Be Familiar with Pytorch Lightning.
 
-2. Deploy on flask + gcp using the api provided by the organizer (app on flask should respond in 1 second)
+2. Deploy on flask + gcp using the api provided by the organizer. (App on flask should respond in 1 second)
 
 3. Be Familiar with the following training tricks or tools:<br>
     Tools: Apex, Dali, pytorch profiler, HDF5,<br>
@@ -61,9 +61,9 @@ Test Accuracy 90% so far
     Tools: Apex, Dali,<br>
     (Bottleneck) Data loading: HDF5, LMDB, TFRecord, tmpfs, hyperparameters (batch_size + num_threads), data prefetcher (not worked)
 
-5. Try to fine tune on Resnet / EfficientNet (Due to the demand of both accuracy and inference speed)
+5. Try to fine tune on Resnet / EfficientNet. (Due to the demand of both accuracy and inference speed)
 
-6. Try different augmentation using Dali pipeline including custom python numpy function 
+6. Try different augmentation using Dali pipeline including custom python numpy function. 
 
 ## <a name="ex1">Experiment
 1. batch_size + num_thread (The bigger one is not the better one)<br>
@@ -86,12 +86,12 @@ Test Accuracy 90% so far
 5. model hyperparameter for training
     
 ## <a name="todo1">TODO
-1. use multi-thread to speed up dataloader
+1. Use multi-thread to speed up dataloader.
 
-2. Further improve model performance (test accuracy 90% now)
+2. Further improve model performance. (test accuracy 90% now)
 
-3. Try to replace more layers with custom ones
+3. Try to replace more layers with custom ones.
 
-4. Try to gather more input data (gather real data or use GAN to generate training images)
+4. Try to gather more input data. (gather real data or use GAN to generate training images)
 
-5. Try to implement noisy label related skills from papers
+5. Try to implement noisy label related skills from papers.
