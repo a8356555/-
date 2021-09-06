@@ -2,7 +2,7 @@ Experimenting on
 
 https://colab.research.google.com/drive/1_9XwlP7vMmk7C5tZ4Bb-PDSoCeevdOo-#scrollTo=UWss9gCGhiiO
 
-Data error handling on
+Data info and error handling on 
 
 https://colab.research.google.com/drive/1qeCqtGTHLGT2Ha2H7GdWVqKBElVUCcHG
 
