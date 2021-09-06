@@ -13,7 +13,7 @@ import torch
 from tensorboard.backend.event_processing import event_accumulator
 
 # please see #TODO
-ROOT = "/content/gdrive/MyDrive/SideProject/YushanAICompetition"
+ROOT = "/content/gdrive/MyDrive/SideProject/YushanChineseWordClassification"
 
 
 class ImageReader:
