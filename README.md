@@ -101,11 +101,3 @@ Test Accuracy 90% so far
     d. Try to gather more input data (gather real data or use GAN to generate training images)
     
     e. Try to implement noisy label related skills from papers
-
-
-# <a name="nls">2. Noisy Label Skills & Papers
-## <a name="di">Dataset info
-## <a name="ta2">Target
-## <a name="p">Papers
-## <a name="ex2">Experiment
-## <a name="todo2">TODO
