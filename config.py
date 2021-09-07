@@ -20,7 +20,7 @@ Please Jump to Bottom to Modify Config
 # data config
 class DCFG: 
     """Config for Data"""
-    input_path = Path('/content/gdrive/MyDrive/SideProject/YushanChineseWordClassificationassification/train')
+    input_path = Path('/content/gdrive/MyDrive/SideProject/YushanChineseWordClassification/train')
     is_gpu_used = True # use GPU or not
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     is_memory_pinned= True
