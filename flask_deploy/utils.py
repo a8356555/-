@@ -2,6 +2,7 @@ import os
 import torch
 from torchvision import models
 from efficientnet_pytorch import EfficientNet
+import cv2
 
 def _get_word_classes_dict(training_data_dict_path="training data dic.txt"):
     assert os.path.exists(training_data_dict_path), 'file does not exists or google drive is not connected'
@@ -11,6 +12,10 @@ def _get_word_classes_dict(training_data_dict_path="training data dic.txt"):
     print(f'no of origin labels: {len(word_classes)},\nno of unique labels: {np.unique(word_classes).shape[0]}')
     word_classes.append('isnull')
     return word_classes
+
+def save_iamge(image, ts):
+    folder = "test_data_saved"
+    cv2.imwrite(os.path.join(folder, ts+".jpg"), image)
 
 # data functions
 def word2int_label(label):

@@ -11,7 +11,7 @@ from flask import jsonify
 import numpy as np
 import datetime
 
-from .utils import int_label2word, get_best_model
+from .utils import int_label2word, get_best_model, save_image
 from .preprocess import preprocess
 
 app = Flask(__name__)
