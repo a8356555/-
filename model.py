@@ -37,7 +37,7 @@ def _get_raw_model(
     print(f"Get {raw_model_type}, model type: {raw_model.__class__}")
     return raw_model
 
-class BaiscClassifier(pl.LightningModule):
+class BasicClassifier(pl.LightningModule):
     """Parent Class for all lightning modules"""
     def __init__(self, raw_model=None):
         super().__init__()        
