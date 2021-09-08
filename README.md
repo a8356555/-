@@ -61,11 +61,11 @@ Test Accuracy 90% so far
 2. Deploy on flask + gcp using the api provided by the organizer. (App on flask should respond in 1 second)
 
 3. Be Familiar with the following training tricks or tools:<br>
-    Tools: Apex, Dali, pytorch profiler, HDF5,<br>
+    Tools: Dali, apex, Pytorch profiler, HDF5,<br>
     Tricks: different learning rate, learning rate scheduler, gradient check
 
 4. Try to speed up training using the following tricks or tools:<br>
-    Tools: Apex, Dali,<br>
+    Tools: Dali, apex, <br>
     (Bottleneck) Data loading: HDF5, LMDB, TFRecord, tmpfs, hyperparameters (batch_size + num_threads), data prefetcher (not worked)
 
 5. Try different augmentation using Dali pipeline including custom python numpy function. 
