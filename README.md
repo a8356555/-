@@ -26,7 +26,7 @@ Test Accuracy 90% so far
     Running on Colab:
         Ubuntu 18.04.5 LTS
         Python 3.7.11
-        cuda upgrade to 11.0
+        CUDA 11.0
         cudnn 7.6.5
         
     Python pytorch related version:
@@ -55,7 +55,7 @@ Test Accuracy 90% so far
         [-t target metric used for evaluating the best model]
 
 ## <a name="ta1">Target
-1. Be Familiar with Pytorch Lightning.
+1. Get familiar with Pytorch Lightning.
 
 2. Deploy on flask + gcp using the api provided by the organizer. (App on flask should respond in 1 second)
 
@@ -67,9 +67,12 @@ Test Accuracy 90% so far
     Tools: Apex, Dali,<br>
     (Bottleneck) Data loading: HDF5, LMDB, TFRecord, tmpfs, hyperparameters (batch_size + num_threads), data prefetcher (not worked)
 
-5. Try to fine tune on Resnet / EfficientNet. (Due to the demand of both accuracy and inference speed)
+5. Try different augmentation using Dali pipeline including custom python numpy function. 
 
-6. Try different augmentation using Dali pipeline including custom python numpy function. 
+6. Try to fine tune on Resnet / EfficientNet. (Due to the demand of both accuracy and inference speed)
+
+7. Try implement special training tricks such as:
+    Different learning rates, learning rate scheduler, gradient check, hard sample training
 
 ## <a name="ex1">Experiment
 1. batch_size + num_thread (The bigger one is not the better one)<br>
