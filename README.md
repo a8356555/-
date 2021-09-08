@@ -11,8 +11,9 @@ https://colab.research.google.com/drive/1qeCqtGTHLGT2Ha2H7GdWVqKBElVUCcHG
     1. [Environmental info](#ei)
     2. [Usage Note](#un)
     3. [Target](#ta1)
-    4. [Experiment](#ex1)
-    5. [TODO](#todo1)
+    4. [Dataset info](#di1)
+    5. [Experiment](#ex1)
+    6. [TODO](#todo1)
 2. [(Moved)Noisy Label](#nl)
     1. [Dataset info](#di)
     2. [Target](#ta)
@@ -74,6 +75,12 @@ Test Accuracy 90% so far
 7. Try implement special training tricks such as:
     Different learning rates, learning rate scheduler, gradient check, hard sample training
 
+## <a name="di1">Dataset Info
+1. Around 10~12% error label rate.
+2. Too much classes (800 + 1 "other")
+3. Data imbalance (Most classes have 100 pics, while some have only 20~30 pics)
+4. Lack of "other" class image. 
+    
 ## <a name="ex1">Experiment
 1. batch_size + num_thread (The bigger one is not the better one)<br>
     num_thread = 4 or 8 is the fastest (just for this project)
@@ -93,6 +100,13 @@ Test Accuracy 90% so far
     讀取時PIL比較快，但那是因為PIL只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
 
 5. model hyperparameter for training
+
+6. 模型實驗
+    Adam vs SGD: SGD 未能找到超越 Adam 表現的超參數<br>
+    小資料集時 efficientnet 使用 adam, lr=5e-4 的表現較 lr=1e-3 好，估計是資料太少 lr 太大時將模型參數更新到太歪的地方<br>
+    Learning rate schedule 慢慢訓練可以訓練出好模型，但是太花時間<br>
+    pretrained=False models 很難訓練起來，一樣需要大量時間與實驗<br>
+    
     
 ## <a name="todo1">TODO
 1. Use multi-thread to speed up dataloader.
