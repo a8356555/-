@@ -7,13 +7,19 @@ Data info and error handling on
 https://colab.research.google.com/drive/1qeCqtGTHLGT2Ha2H7GdWVqKBElVUCcHG
 
 # Table of Contents
-* [YuShan AI Competition](#yac)
+1. [YuShan AI Competition](#yac)
     1. [Environmental info](#ei)
     2. [Usage Note](#un)
     3. [Target](#ta1)
     4. [Experiment](#ex1)
     5. [TODO](#todo1)
-# <a name="yac">YuShan AI Competition (Chinese Word Classification)
+2. [(Moved)Noisy Label](#nl)
+    1. [Dataset info](#di)
+    2. [Target](#ta)
+    3. [Papers](#p)
+    4. [Experiment](#ex)
+    5. [TODO](#todo)
+# <a name="yac">1. YuShan AI Competition (Chinese Word Classification)
 Test Accuracy 90% so far
 
 ## <a name="ei">Environmental info
@@ -95,3 +101,7 @@ Test Accuracy 90% so far
 4. Try to gather more input data. (gather real data or use GAN to generate training images)
 
 5. Try to implement noisy label related skills from papers.
+
+    
+# <a name="nl">2. Noisy Label
+Moved to new repo https://github.com/a8356555/NoisyLabel/blob/main/README.md
