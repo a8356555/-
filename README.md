@@ -105,3 +105,18 @@ Test Accuracy 90% so far
     
 # <a name="nl">2. Noisy Label
 Moved to new repo https://github.com/a8356555/NoisyLabel/blob/main/README.md
+    
+## <a name="di">Dataset info
+* label noise rate around 12%
+    
+## <a name="ta">Target
+* Find an approach effective at finding out errors.
+* Find an framework that can build robust models having better performance without manually adjusting the labels.
+* Training on hard samples.
+    
+## <a name="p">Papers
+    
+## <a name="ex">Experiment
+    
+## <a name="todo">TODO
+* Implementation of approaches of other papers
