@@ -150,8 +150,13 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         self.rotate = ops.Rotate(device=self.device)  
         self.color_space_conversion = None
         self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
-        self.normalize = ops.Normalize(device="gpu", mean=[185.39, 175.21, 177.48], std=[52.19, 53.27, 46.44])
-
+        self.cmnp = ops.CropMirrorNormalize(device="gpu",
+                                    output_dtype=types.FLOAT,
+                                    output_layout=types.NCHW,
+                                    image_type=types.RGB,
+                                    mean=[185.39, 175.21, 177.48],
+                                    std=[52.19, 53.27, 46.44]
+                                    )
     def define_graph(self):
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
@@ -166,7 +171,7 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         output = self.normalize(output)
         if self.color_space_conversion:
             output = self.color_space_conversion(output)
-        output = self.transpose(output)
+        output = self.cmnp(output)
         # output = output/255.0
         return (output, self.labels)
 
