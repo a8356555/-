@@ -100,13 +100,23 @@ Test Accuracy 90% so far
     讀取時PIL比較快，但那是因為PIL只先打開不讀入，若牽扯到之後的操作包含resize，則使用CV2較快
 
 5. model hyperparameter for training
-
+    num_threads=4 or 8 is better
+    
 6. 模型實驗
+    Baseline (resnet18, Adam, lr 1e-3) + 使用 1/3 資料集: ~40% valid accuracy<br>
+    使用 different learning rate 將模型分為三個部分 (lr = [1e-3, 1e-4, 1e-5]) 進行差分訓練: +10% (~50%)<br>
+    使用 different learning rate + 1-cycle learning rate scheduler: +2% (~52%)<br>
+    加入網路上找的其他中文字資料集並且改使用灰階圖片（模型加一層卷積層）來使兩個資料集分布接近 : +6% (~58%)<br>
+    擴大模型 resnet34: +5% (~63%)<br>
+    衡量模型需求與資料分布，改使用 efficientnet-b0 與整個原資料集、去除新資料集。增加 data augmentation: +7% (~70%)<br>
+    增加 data augmentation 使其可以模擬更多新手寫圖片，同時擴大資料集並加入其他類 (isnull) 來訓練: +18% (~86%)<br>
+    使用 hard sample training: +?% (~?%)<br><br>
+    
     Adam vs SGD: SGD 未能找到超越 Adam 表現的超參數<br>
     小資料集時 efficientnet 使用 adam, lr=5e-4 的表現較 lr=1e-3 好，估計是資料太少 lr 太大時將模型參數更新到太歪的地方<br>
     Learning rate schedule 慢慢訓練可以訓練出好模型，但是太花時間<br>
     pretrained=False models 很難訓練起來，一樣需要大量時間與實驗<br>
-    
+    Just divide pixel by 255 is much better than normalize by the dataset mean and stddev, why???<br>
     
 ## <a name="todo1">TODO
 1. Use multi-thread to speed up dataloader.
