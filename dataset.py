@@ -168,10 +168,10 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         output = self.crop(output)        
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         output = self.rotate(output, angle=angle)
-        output = self.normalize(output)
+        output = self.cmnp(output)
         if self.color_space_conversion:
             output = self.color_space_conversion(output)
-        output = self.cmnp(output)
+        # output = self.transpose(output)
         # output = output/255.0
         return (output, self.labels)
 
