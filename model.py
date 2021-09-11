@@ -134,7 +134,7 @@ class BasicClassifier(pl.LightningModule):
         """
         pass
 
-class ResNetClassifier(BaiscClassifier):
+class ResNetClassifier(BasicClassifier):
     def __init__(self, raw_model):
         super().__init__(raw_model)
         num_input_fts = self.model.fc.in_features
@@ -153,7 +153,7 @@ class ResNetClassifier(BaiscClassifier):
         ]                
         return params_group
         
-class EfficientClassifier(BaiscClassifier):
+class EfficientClassifier(BasicClassifier):
     def __init__(self, raw_model):
         super().__init__(raw_model)
         num_input_fts = self.model._fc.in_features
@@ -182,7 +182,7 @@ class GrayWrapperModel(nn.Module):
         x = self.conv1(x)        
         return self.model(x)
 
-class GrayResClassifier(BaiscClassifier):
+class GrayResClassifier(BasicClassifier):
     def __init__(self, raw_model):
         super().__init__(raw_model)
         self.model = GrayWrapperModel(self.model)
@@ -204,7 +204,7 @@ class GrayResClassifier(BaiscClassifier):
         ]        
         return params_group 
 
-class GrayEffClassifier(BaiscClassifier):
+class GrayEffClassifier(BasicClassifier):
     def __init__(self, raw_model):
         super().__init__(raw_model)
         self.model = GrayWrapperModel(self.model)    
@@ -235,7 +235,7 @@ class CustomModel(nn.Module):
     def forward(self, x):
         pass
 
-class CustomModelClassifier(BaiscClassifier):
+class CustomModelClassifier(BasicClassifier):
     def __init__(self, raw_model):
         super.__init__(raw_model)
         self.model = CustomModel()

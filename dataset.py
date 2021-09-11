@@ -137,7 +137,7 @@ class BasicCustomPipeline(BasicPipeline):
         output = output/255.0
         return (output, self.labels)
 
-class AddRotatePipeline(BasicCustomPipeline):
+class AddRotateNormalizePipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict,
             custom_func=None,  
@@ -148,7 +148,9 @@ class AddRotatePipeline(BasicCustomPipeline):
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.device)  
+        self.color_space_conversion = None
         self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
+        self.normalize = ops.Normalize(device="gpu", mean=[185.39, 175.21, 177.48], std=[52.19, 53.27, 46.44])
 
     def define_graph(self):
         self.jpegs, self.labels = self.input() # (name='r')
@@ -161,10 +163,11 @@ class AddRotatePipeline(BasicCustomPipeline):
         output = self.crop(output)        
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         output = self.rotate(output, angle=angle)
+        output = self.normalize(output)
         if self.color_space_conversion:
             output = self.color_space_conversion(output)
         output = self.transpose(output)
-        output = output/255.0
+        # output = output/255.0
         return (output, self.labels)
 
 class AddWaterPipeline(BasicCustomPipeline):
@@ -389,7 +392,7 @@ def get_datasets(
         train_dataset = NoisyStudentPipeline(train_input_dict, custom_func=dali_custom_func, warpaffine_transform=dali_warpaffine_transform)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif is_dali_used:
-        train_dataset = AddRotatePipeline(train_input_dict, custom_func=dali_custom_func)
+        train_dataset = AddRotateNormalizePipeline(train_input_dict, custom_func=dali_custom_func)
         valid_dataset = BasicCustomPipeline(valid_input_dict, custom_func=dali_custom_func, phase="valid")
     elif data_type == "mixed" or "cleaned" or "2nd":
         train_dataset = YuShanDataset(train_input_dict, transform=transform_func)

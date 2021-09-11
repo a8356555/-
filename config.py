@@ -38,15 +38,15 @@ class DCFG:
 class MCFG: 
     """Config for Model"""
     # model name / folder name
-    model_type = 'effb4'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
+    model_type = 'effb0'       ### model in torchvision.models | effb[0-7] | effb[0]_noisy_student | custom
     model_class_name = 'DaliEffClassifier'  ### DaliEffClassifier | NoisyStudentDaliEffClassifier
-    other_settings = 'training on hard example'         ### dali | gray |
+    other_settings = 'normalized with differ lr'         ### dali | gray |
     is_continued_training = False         ### 請修改
     
     # model training setting
     is_pretrained = True        ### 請修改
     is_customized = False       ### 請修改
-    max_epochs = 30           ### 請修改
+    max_epochs = 10           ### 請修改
     save_every_n_epoch = 3      ### 請修改
     log_every_n_steps = 50         
     save_top_k_models = 2    
@@ -56,7 +56,7 @@ class MCFG:
     precision = 16
     monitor = 'val_loss'
 
-    root_model_folder = Path('/content/gdrive/MyDrive/SideProject/YushanChineseWordClassificationassification/model')
+    root_model_folder = Path('/content/gdrive/MyDrive/SideProject/YushanChineseWordClassification/model')
     today = str(date.today())
     ckpt_path = None
     version = None
@@ -67,7 +67,7 @@ class OCFG:
     """Config for Optimizer"""
     optim_name = 'Adam'         ### 請修改
     lr = 1e-3                   ### 請修改    
-    has_differ_lr = False         ### 請修改
+    has_differ_lr = True         ### 請修改
     lr_group = [lr/100, lr/10, lr]     ### 請修改
     weight_decay = 0                                           ### 請修改
     momentum = 0.9 if optim_name == 'SGD' else 0                    ### 請修改
