@@ -148,8 +148,6 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.device)  
-        self.color_space_conversion = None
-        self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
         self.cmnp = ops.CropMirrorNormalize(device="gpu",
                                     output_dtype=types.FLOAT,
                                     output_layout=types.NCHW,
@@ -169,13 +167,11 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         angle = fn.random.uniform(values=[0]*8 + [90.0, -90.0]) # 20% change rotate
         output = self.rotate(output, angle=angle)
         output = self.cmnp(output)
-        if self.color_space_conversion:
-            output = self.color_space_conversion(output)
         # output = self.transpose(output)
         # output = output/255.0
         return (output, self.labels)
 
-class AddWaterPipeline(BasicCustomPipeline):
+class OtherAugPipeline(BasicCustomPipeline):
     def __init__(self, 
             inp_dict, 
             custom_func=None, 
@@ -186,6 +182,7 @@ class AddWaterPipeline(BasicCustomPipeline):
         ):        
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.water = ops.Water(device=self.device)  
+        self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
 
     def define_graph(self):
         self.jpegs, self.labels = self.input() # (name='r')
@@ -197,6 +194,7 @@ class AddWaterPipeline(BasicCustomPipeline):
         output = self.resize(output, resize_x=w, resize_y=h)        
         output = self.crop(output)        
         output = self.water(output)
+        output = self.color_space_conversion(output)
         output = self.transpose(output)
         output = output/255.0
         return (output, self.labels) 
