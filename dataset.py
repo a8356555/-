@@ -362,8 +362,8 @@ def get_input_data_and_transform_func(data_type=DCFG.data_type, is_for_testing=F
     
     print(f"data type: {data_type}, train data numbers: {len(train_image_paths)}, valid data numbers: {len(valid_image_paths)}")
     if is_for_testing:
-        train_input_dict = {'image': train_images, 'label': train_int_labels, 'path': train_image_paths[:100]}
-        valid_input_dict = {'image': valid_images, 'label': valid_int_labels, 'path': valid_image_paths[:100]}
+        train_input_dict = {'image': train_images, 'label': train_int_labels[:100], 'path': train_image_paths[:100]}
+        valid_input_dict = {'image': valid_images, 'label': valid_int_labels[:100], 'path': valid_image_paths[:100]}
     else:
         train_input_dict = {'image': train_images, 'label': train_int_labels, 'path': train_image_paths}
         valid_input_dict = {'image': valid_images, 'label': valid_int_labels, 'path': valid_image_paths}
