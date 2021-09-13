@@ -108,8 +108,8 @@ Test Accuracy 90% so far
     * 使用 different learning rate + 1-cycle learning rate scheduler: +2% (~52%)<br>
     * 加入網路上找的其他中文字資料集並且改使用灰階圖片（模型加一層卷積層）來使兩個資料集分布接近 : +6% (~58%)<br>
     * 擴大模型 resnet34: +5% (~63%)<br>
-    * 衡量模型需求與資料分布，改使用 efficientnet-b0 與整個原資料集、去除新資料集。增加 data augmentation: +10% (~73%)<br>
-    * 增加 data augmentation 使其可以模擬更多新手寫圖片，同時擴大資料集並加入其他類 (isnull) 來訓練: +17% (~90%)<br>
+    * 衡量模型需求與資料分布，改使用 efficientnet-b0 與整個原資料集、去除新資料集並加入其他類 (isnull) 來訓練。: +17% (~80%)
+    * 增加 data augmentation 使其可以模擬更多新手寫圖片: +10% (~90%)
     * 使用 hard sample training: +?% (~?%)<br><br>
    
 * Note    
