@@ -397,6 +397,9 @@ class ModelFileHandler:
     @classmethod
     def print_existing_model_version_and_info(cls, model_folder):
         """Print out existing model version name and its info"""
+        if isinstance(model_folder, str):
+            model_folder = Path(root_model_folder)
+        
         print_dict = {}
         for version_folder in model_folder.glob("*v[0-9]*"): 
             config = ConfigHandler.load_config(version_folder)
