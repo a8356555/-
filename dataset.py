@@ -149,7 +149,7 @@ class AddRotateNormalizePipeline(BasicCustomPipeline):
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.rotate = ops.Rotate(device=self.device)  
         self.cmnp = ops.CropMirrorNormalize(device="gpu",
-                                    output_dtype=types.FLOAT,
+                                    dtype=types.FLOAT,
                                     output_layout=types.NCHW,
                                     image_type=types.RGB,
                                     mean=[185.39, 175.21, 177.48],
