@@ -183,7 +183,13 @@ class OtherAugPipeline(BasicCustomPipeline):
         super().__init__(inp_dict, custom_func, batch_size, num_workers, phase, device_id)
         self.water = ops.Water(device=self.device)  
         self.color_space_conversion = ops.ColorSpaceConversion(Types.RGB, Types.GRAY, device=self.device) if 'gray' in DCFG.transform_approach else None
-
+        self.cmnp = ops.CropMirrorNormalize(device="gpu",
+                                    dtype=types.FLOAT,
+                                    output_layout=types.NCHW,
+                                    image_type=types.RGB,
+                                    mean=[185.39, 175.21, 177.48],
+                                    std=[52.19, 53.27, 46.44])
+   
     def define_graph(self):
         self.jpegs, self.labels = self.input() # (name='r')
         output = self.decode(self.jpegs)
@@ -195,8 +201,11 @@ class OtherAugPipeline(BasicCustomPipeline):
         output = self.crop(output)        
         output = self.water(output)
         output = self.color_space_conversion(output)
-        output = self.transpose(output)
-        output = output/255.0
+        is self.cmnp:
+            output = self.cmnp(output)
+        else:
+            output = self.transpose(output)
+            output = output/255.0
         return (output, self.labels) 
 
 class TestNoisyStudentPipeline(BasicCustomPipeline):

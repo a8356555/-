@@ -67,7 +67,7 @@ class OCFG:
     """Config for Optimizer"""
     optim_name = 'Adam'         ### 請修改
     lr = 1e-3                   ### 請修改    
-    has_differ_lr = True         ### 請修改
+    has_differ_lr = False         ### 請修改
     lr_group = [lr/100, lr/10, lr]     ### 請修改
     weight_decay = 0                                           ### 請修改
     momentum = 0.9 if optim_name == 'SGD' else 0                    ### 請修改
