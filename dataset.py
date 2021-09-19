@@ -201,7 +201,7 @@ class OtherAugPipeline(BasicCustomPipeline):
         output = self.crop(output)        
         output = self.water(output)
         output = self.color_space_conversion(output)
-        is self.cmnp:
+        if self.cmnp:
             output = self.cmnp(output)
         else:
             output = self.transpose(output)
