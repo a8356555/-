@@ -72,7 +72,7 @@ class OCFG:
     weight_decay = 0                                           ### 請修改
     momentum = 0.9 if optim_name == 'SGD' else 0                    ### 請修改
     
-    has_scheduler = True
+    has_scheduler = False
     schdlr_name = 'OneCycleLR' if has_scheduler else None
     total_steps = (MCFG.max_epochs)*(DCFG.class_num*DCFG.expected_num_per_class//DCFG.batch_size+1) if has_scheduler else None
     max_lr = [lr*10 for lr in lr_group] if has_differ_lr else lr*10

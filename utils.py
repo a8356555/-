@@ -598,7 +598,11 @@ class ConfigHandler:
         return output_dict
 
     @classmethod
-    def load_config(cls, version_folder='.', file_path=None):        
+    def load_config(cls, version_folder=Path('.'), file_path=None):
+        if isinstance(version_folder, str):
+            version_folder = Path(version_folder)
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
         data = None    
         path = file_path if file_path else version_folder / 'config.json'
         print(f'config file path: {path}')
