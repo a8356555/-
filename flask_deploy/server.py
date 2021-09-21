@@ -11,8 +11,9 @@ from flask import jsonify
 import numpy as np
 import datetime
 
-from .utils import int_label2word, get_best_model, save_image
-from .preprocess import preprocess
+from utils.utils import int_label2word, save_image
+from utils.model import get_best_model
+from utils.preprocess import preprocess
 
 app = Flask(__name__)
 
@@ -62,7 +63,7 @@ def predict(image):
     ####### PUT YOUR MODEL INFERENCING CODE HERE #######
     tensor = preprocess(image)
     pred = model(tensor).argmax(axis=1).detach().numpy()
-    prediction = int_label2word[int(pred)]
+    prediction = int_label2word(int(pred))
 
     ####################################################
     if _check_datatype_to_string(prediction):
@@ -109,6 +110,7 @@ def inference():
         raise e
     # print('inference time: ', datetime.datetime.now().utcnow().timestamp() - int(ts))
     # save_image(image, ts)
+    
     return jsonify({'esun_uuid': data['esun_uuid'],
                     'server_uuid': server_uuid,
                     'answer': answer,
@@ -122,9 +124,10 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument('-p', '--port', default=8080, help='port')
     arg_parser.add_argument('-d', '--debug', default=True, help='debug')
+    arg_parser.add_argument('-m', '--model-name', default="efficientnet-b0", type=str, help='model_name')
     options = arg_parser.parse_args()
 
-    model = get_best_model()  
+    model = get_best_model(options.model_name)  
     model.eval()
     model.cpu()
 

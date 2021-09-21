@@ -1,11 +1,9 @@
 import os 
-import torch
-from torchvision import models
-from efficientnet_pytorch import EfficientNet
 import cv2
+import numpy as np
 
-def _get_word_classes_dict(training_data_dict_path="training data dic.txt"):
-    assert os.path.exists(training_data_dict_path), 'file does not exists or google drive is not connected'
+def _get_word_classes_dict(training_data_dict_path="/home/luhsuanwen/project/flask_deploy/training data dict.txt"):
+    assert os.path.exists(training_data_dict_path), 'file does not exists'
 
     with open(training_data_dict_path, 'r') as file:
         word_classes = [word.rstrip() for word in file.readlines()]
@@ -13,7 +11,7 @@ def _get_word_classes_dict(training_data_dict_path="training data dic.txt"):
     word_classes.append('isnull')
     return word_classes
 
-def save_iamge(image, ts):
+def save_image(image, ts):
     folder = "test_data_saved"
     cv2.imwrite(os.path.join(folder, ts+".jpg"), image)
 
@@ -30,17 +28,7 @@ def int_label2word(int_label):
     int_label2word_dict = dict(zip(range(len(word_classes)), word_classes))
     return int_label2word_dict[int_label]
 
-def get_best_model():
-    folder = "BEST_MODEL/"
-    best_model_ckpt_path = [file for file in os.listdir(folder) if file.endswith(".ckpt")][0]
-    checkpoint = torch.load(best_model_ckpt_path, map_location=torch.device('cpu'))
 
-    class_num = 801
-    model = EfficientNet.from_pretrained(name)
-    num_input_fts = model._fc.in_features
-    model._fc = nn.Linear(num_input_fts, class_num)
-    model.load_state_dict(checkpoint['state_dict'])
-    return model
 
 
 word_classes = _get_word_classes_dict()
